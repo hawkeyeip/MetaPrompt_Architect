@@ -1,22 +1,22 @@
 /**
- * MetaPromptEngine Module (v0.3.0)
- * Includes detailed descriptions & output examples for Reasoning Modes & Output Formats, tooltips, and prompt synthesis.
+ * MetaPromptEngine Module (v0.4.0)
+ * Context Auto-Refiner, Objective Polisher, Interactive Clarification Integrator, & Streamlined Security Formatter.
  */
 
 const _RoleAdvisor = typeof RoleAdvisor !== 'undefined' ? RoleAdvisor : (typeof require !== 'undefined' ? require('./roleAdvisor.js') : null);
+const _SecurityScanner = typeof SecurityScanner !== 'undefined' ? SecurityScanner : (typeof require !== 'undefined' ? require('./securityScanner.js') : null);
 
 const MetaPromptEngine = {
-  // Dictionary of Reasoning Modes with explanations & output format examples
   reasoningModesInfo: {
     cot: {
       name: 'Step-by-Step Chain of Thought (CoT)',
-      description: 'Breaks complex tasks down into explicit sequential thought steps before stating the conclusion.',
+      description: 'Breaks complex tasks down into explicit sequential thought steps before stating conclusions.',
       bestFor: 'Complex logic, code design, mathematical calculations, and multi-variable problem solving.',
       example: 'Step 1: Identify inputs -> Step 2: Evaluate constraints -> Step 3: Draft solution -> Step 4: Validate against edge cases.'
     },
     first_principles: {
       name: 'First Principles Deconstruction',
-      description: 'Deconstructs a problem down to its most basic foundational truths and builds a solution from scratch.',
+      description: 'Deconstructs a problem down to its foundational truths and builds a solution from scratch.',
       bestFor: 'Novel problems, architectural redesigns, and overcoming legacy assumptions.',
       example: 'Fundamental Assumptions -> Foundational Truths -> Unconstrained Rebuilding -> Final Architecture.'
     },
@@ -46,7 +46,6 @@ const MetaPromptEngine = {
     }
   },
 
-  // Dictionary of Output Formats with explanations & output examples
   outputFormatsInfo: {
     markdown: {
       name: 'Structured Markdown with headers & callouts',
@@ -91,7 +90,7 @@ const MetaPromptEngine = {
   },
 
   /**
-   * Synthesizes master meta-prompt
+   * Generates master meta-prompt with context refiner, objective polisher, interactive answers, and clean security section
    */
   generateMetaPrompt({
     task,
@@ -102,39 +101,61 @@ const MetaPromptEngine = {
     reasoningModeKey = 'cot',
     enableRefining = true,
     enableSecurityCheck = true,
+    userClarificationAnswers = [],
     attachments = []
   }) {
-    // Step 1: Synthesize dynamic role with optional format & tone overrides
+    // 1. Role Synthesis
     const role = _RoleAdvisor ? _RoleAdvisor.synthesizeRole(task, personaFormatId, toneStyleId) : { title: 'Domain Advisor', systemPrompt: 'You are an elite Domain Advisor.', rationale: 'Default' };
 
-    // Step 2: Refine task if enabled
-    const finalTask = enableRefining ? this.refineTaskInstructions(task) : task;
+    // 2. Refine & Polish Context & Objectives
+    const polishedObjective = enableRefining ? this.polishObjective(task) : task;
+    const refinedContext = enableRefining ? this.refineContext(context, task) : (context.trim() || 'Operate with standard technical domain expertise.');
 
-    // Step 3: Generate dynamic clarifying questions
+    // 3. Dynamic Clarifying Questions
     const clarifyingQuestions = this.generateClarifyingQuestions(task);
 
-    // Step 4: Build instruction breakdown
+    // 4. Formulate Clarification Answers Section
+    let clarificationSection = '';
+    const validAnswers = userClarificationAnswers.filter(a => a && a.answer && a.answer.trim().length > 0);
+    if (validAnswers.length > 0) {
+      clarificationSection = `\n[USER SPECIFICATIONS & CLARIFIED DECISION POINTS]\n` +
+        validAnswers.map(a => `• ${a.question}: ${a.answer.trim()}`).join('\n');
+    }
+
+    // 5. Instruction Breakdown
     const breakdown = this.getInstructionBreakdown(task);
 
-    // Step 5: Lookup reasoning mode & output format info
+    // 6. Reasoning & Output info
     const reasoningInfo = this.reasoningModesInfo[reasoningModeKey] || this.reasoningModesInfo.cot;
     const outputInfo = this.outputFormatsInfo[outputFormatKey] || this.outputFormatsInfo.markdown;
 
-    // Step 6: Multimodal context
+    // 7. Multimodal context
     let multimodalContext = '';
     if (attachments && attachments.length > 0) {
       multimodalContext = `\n\n[MULTIMODAL ATTACHMENTS & VISUAL CONTEXT]\nThe user has attached ${attachments.length} media asset(s). Refer to visual layouts, OCR text, and media context provided in this prompt stream.`;
     }
 
-    // Step 7: Assemble master prompt structure
+    // 8. Neat Security Section Formatting
+    let securitySection = '';
+    if (enableSecurityCheck) {
+      const scan = _SecurityScanner ? _SecurityScanner.scan(polishedObjective + ' ' + refinedContext) : { status: 'safe', findings: [] };
+      if (scan.status === 'safe' || scan.findings.length === 0) {
+        securitySection = `[SECURITY & PRIVACY CHECK]\nScan Complete: 0 Vulnerabilities or PII Detected. All output must maintain strict data privacy.`;
+      } else {
+        const addressedList = scan.findings.map(f => `${f.name} (${f.replacement})`).join(', ');
+        securitySection = `[SECURITY & PRIVACY MANDATE]\nThe following sensitivity risks were identified and addressed: ${addressedList}. Ensure all generated responses maintain 100% redaction.`;
+      }
+    }
+
+    // 9. Assemble Master Prompt Structure
     const metaPrompt = `[SYSTEM ROLE & DIRECTIVE]
 ${role.systemPrompt}
 
-[CONTEXT & BACKGROUND]
-${context.trim() || 'No explicit prior context provided. Apply top-tier domain standards.'}${multimodalContext}
+[DOMAIN CONTEXT & ENVIRONMENT]
+${refinedContext}${clarificationSection}${multimodalContext}
 
 [CORE OBJECTIVE]
-${finalTask}
+${polishedObjective}
 
 [INSTRUCTION BREAKDOWN & GUIDELINES]
 ${breakdown.map(step => `• ${step}`).join('\n')}
@@ -143,22 +164,19 @@ ${breakdown.map(step => `• ${step}`).join('\n')}
 Mode: ${reasoningInfo.name}
 ${reasoningInfo.description}
 
-[ENDEAVOR CLARIFICATION & KEY DECISION POINTS]
-To maximize utility and eliminate ambiguity, ensure the following aspects are explicitly addressed:
-${clarifyingQuestions.map(q => `? ${q}`).join('\n')}
-
 [OUTPUT SPECIFICATIONS]
 - Format Requirement: ${outputInfo.name}
 - Format Description: ${outputInfo.description}
 - Quality Benchmark: Production-ready, authoritative, token-conscious, and directly actionable.
 - Constraints: No conversational disclaimers, no generic fillers, and strict adherence to technical accuracy.
 
-${enableSecurityCheck ? '[SECURITY & PRIVACY MANDATE]\nScan and redact any PII, credentials, API keys, or private internal network paths before returning response.' : ''}`;
+${securitySection}`;
 
     return {
       metaPrompt: metaPrompt.trim(),
       role,
-      refinedTask: finalTask,
+      polishedObjective,
+      refinedContext,
       breakdown,
       clarifyingQuestions,
       reasoningInfo,
@@ -166,11 +184,55 @@ ${enableSecurityCheck ? '[SECURITY & PRIVACY MANDATE]\nScan and redact any PII, 
     };
   },
 
+  /**
+   * Auto-Refines raw context into structured domain parameters
+   */
+  refineContext(rawContext, taskText) {
+    if (!rawContext || rawContext.trim().length === 0) {
+      return 'Operate within standard production software & business environment baselines. Assume modern tech stack guidelines.';
+    }
+
+    let cleanContext = rawContext.trim();
+
+    // Transform informal shorthand into structured environment baseline
+    cleanContext = cleanContext.replace(/we use /gi, 'Environment Stack: ');
+    cleanContext = cleanContext.replace(/running on /gi, 'Infrastructure: ');
+    cleanContext = cleanContext.replace(/with /gi, 'Constraints: ');
+
+    return `Target Environment Baseline:\n- ${cleanContext.split('\n').join('\n- ')}`;
+  },
+
+  /**
+   * Polishes raw task into high-impact executive objective statement
+   */
+  polishObjective(taskText) {
+    if (!taskText || taskText.trim().length === 0) {
+      return 'Deliver a high-efficacy, production-grade technical solution meeting all acceptance criteria.';
+    }
+
+    let polished = taskText.trim();
+    if (!polished.endsWith('.')) polished += '.';
+
+    if (!/address|ensure|deliver|design|implement|audit|optimize/i.test(polished)) {
+      polished = `Synthesize and execute a complete solution to ${polished.toLowerCase()}`;
+    }
+
+    // Append edge case and validation requirements
+    if (!/edge case|error|exception|test|validation/i.test(polished)) {
+      polished += ' Ensure explicit handling for edge cases, error states, and execution validation.';
+    }
+
+    return polished;
+  },
+
+  /**
+   * Generates dynamic clarifying questions for the prompt
+   */
   generateClarifyingQuestions(taskText) {
     if (!taskText || taskText.trim().length === 0) {
       return [
-        'What is the specific target audience or consumption environment for this output?',
-        'Are there any technical or resource constraints that must be strictly observed?',
+        'What is the specific target audience or deployment environment?',
+        'Are there any strict performance benchmarks or technical constraints?',
         'What criteria define successful execution for this endeavor?'
       ];
     }
@@ -179,15 +241,15 @@ ${enableSecurityCheck ? '[SECURITY & PRIVACY MANDATE]\nScan and redact any PII, 
     const questions = [];
 
     if (textLower.includes('code') || textLower.includes('api') || textLower.includes('build') || textLower.includes('app')) {
-      questions.push('What specific programming language version, framework, or runtime environment is required?');
-      questions.push('What error handling strategy or performance benchmarks (e.g. latency, throughput) should be targeted?');
+      questions.push('What programming language version, framework, or runtime environment is required?');
+      questions.push('What performance benchmarks (e.g. latency, throughput) or error handling strategy should be targeted?');
       questions.push('Are there existing architectural patterns or API contracts that must be preserved?');
     } else if (textLower.includes('sql') || textLower.includes('query') || textLower.includes('data') || textLower.includes('analysis')) {
       questions.push('What is the target database engine (e.g. BigQuery, PostgreSQL, Snowflake) and table schema layout?');
       questions.push('What time window, aggregation grain, or filtering parameters should be applied?');
       questions.push('Should edge cases (such as null values or duplicate entries) be filtered or explicitly highlighted?');
     } else if (textLower.includes('write') || textLower.includes('article') || textLower.includes('copy') || textLower.includes('doc')) {
-      questions.push('Who is the exact target reader (e.g. technical engineers, C-level executives, general public)?');
+      questions.push('Who is the target reader (e.g. technical engineers, C-level executives, general public)?');
       questions.push('What primary call-to-action or core key takeaway should the reader walk away with?');
       questions.push('What length or section structure is preferred for maximum readability?');
     } else {
@@ -197,30 +259,6 @@ ${enableSecurityCheck ? '[SECURITY & PRIVACY MANDATE]\nScan and redact any PII, 
     }
 
     return questions;
-  },
-
-  refineTaskInstructions(taskText) {
-    if (!taskText || taskText.trim().length === 0) {
-      return 'Perform the requested task with comprehensive accuracy and clear step-by-step documentation.';
-    }
-
-    let refined = taskText.trim();
-
-    if (!/edge case|error|exception|failure/i.test(refined)) {
-      refined += '\n- Explicitly address edge cases, potential error states, and fallback behavior.';
-    }
-
-    if (!/format|template|json|markdown|structure/i.test(refined)) {
-      refined += '\n- Structure the response logically with key takeaways, actionable steps, and concise explanations.';
-    }
-
-    if (/code|script|function|build|create|sql|api/i.test(refined)) {
-      if (!/test|verify|validation/i.test(refined)) {
-        refined += '\n- Include sanity validation steps, unit test examples, or execution checks to confirm correctness.';
-      }
-    }
-
-    return refined;
   },
 
   getInstructionBreakdown(taskText) {

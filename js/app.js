@@ -1,6 +1,6 @@
 /**
- * App Controller (v0.3.0 Master Orchestrator)
- * Handles optional persona & tone dropdowns, tooltips & output examples for reasoning modes & formats, and LaunchDarkly versioning.
+ * App Controller (v0.4.0 Master Orchestrator)
+ * Supports Context Refiner, Objective Polisher, Interactive Clarification Answer Fields & Streamlined Security Output.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const App = {
   currentMetaPrompt: '',
+  activeClarifyingQuestions: [],
 
   init() {
     this.populateDropdownOptions();
@@ -23,11 +24,7 @@ const App = {
     this.bindSamplePrompts();
   },
 
-  /* ------------------------------------------------------------------
-     0. Populate Dropdowns (Optional Persona Formats, Tone Styles, Reasoning, Formats)
-     ------------------------------------------------------------------ */
   populateDropdownOptions() {
-    // 1. Persona Formats Dropdown
     const formatSelect = document.getElementById('select-persona-format');
     if (formatSelect && RoleAdvisor.personaFormats) {
       formatSelect.innerHTML = '';
@@ -37,7 +34,6 @@ const App = {
       });
     }
 
-    // 2. Tone & Style Dropdown
     const toneSelect = document.getElementById('select-tone-style');
     if (toneSelect && RoleAdvisor.toneStyles) {
       toneSelect.innerHTML = '';
@@ -47,7 +43,6 @@ const App = {
       });
     }
 
-    // 3. Reasoning Modes Dropdown
     const reasoningSelect = document.getElementById('select-reasoning-mode');
     if (reasoningSelect && MetaPromptEngine.reasoningModesInfo) {
       reasoningSelect.innerHTML = '';
@@ -58,7 +53,6 @@ const App = {
       });
     }
 
-    // 4. Output Formats Dropdown
     const outputSelect = document.getElementById('select-output-format');
     if (outputSelect && MetaPromptEngine.outputFormatsInfo) {
       outputSelect.innerHTML = '';
@@ -70,9 +64,6 @@ const App = {
     }
   },
 
-  /* ------------------------------------------------------------------
-     0.1 Tooltips & Dynamic Info Cards Setup
-     ------------------------------------------------------------------ */
   bindTooltips() {
     const reasoningSelect = document.getElementById('select-reasoning-mode');
     const outputSelect = document.getElementById('select-output-format');
@@ -115,9 +106,6 @@ const App = {
     `;
   },
 
-  /* ------------------------------------------------------------------
-     1. Navigation & Tab Switching
-     ------------------------------------------------------------------ */
   bindNavigation() {
     const tabBtns = document.querySelectorAll('.tab-btn');
     const viewPanels = document.querySelectorAll('.view-panel');
@@ -146,9 +134,6 @@ const App = {
     });
   },
 
-  /* ------------------------------------------------------------------
-     2. Meta-Prompt Generator Tab
-     ------------------------------------------------------------------ */
   bindGenerator() {
     const taskInput = document.getElementById('input-task');
     const contextInput = document.getElementById('input-context');
@@ -159,54 +144,7 @@ const App = {
 
     if (generateBtn) {
       generateBtn.addEventListener('click', () => {
-        const task = taskInput.value;
-        const context = contextInput.value;
-        const personaFormatId = document.getElementById('select-persona-format')?.value || 'auto';
-        const toneStyleId = document.getElementById('select-tone-style')?.value || 'auto';
-        const outputFormatKey = document.getElementById('select-output-format')?.value || 'markdown';
-        const reasoningModeKey = document.getElementById('select-reasoning-mode')?.value || 'cot';
-        const enableRefining = document.getElementById('check-enable-refine')?.checked ?? true;
-        const enableSecurity = document.getElementById('check-enable-security')?.checked ?? true;
-
-        if (!task || task.trim().length === 0) {
-          alert('Please enter a prompt, task, or question.');
-          return;
-        }
-
-        // Generate Meta-Prompt
-        const result = MetaPromptEngine.generateMetaPrompt({
-          task,
-          context,
-          personaFormatId,
-          toneStyleId,
-          outputFormatKey,
-          reasoningModeKey,
-          enableRefining,
-          enableSecurityCheck: enableSecurity,
-          attachments: MultimodalHandler.attachments
-        });
-
-        // Security scan if enabled
-        let finalPromptText = result.metaPrompt;
-        if (enableSecurity) {
-          const scan = SecurityScanner.scan(finalPromptText);
-          this.renderHeaderSecurityIndicator(scan);
-        }
-
-        this.currentMetaPrompt = finalPromptText;
-        outputContainer.textContent = finalPromptText;
-
-        // Render role summary & clarifying questions
-        this.renderRoleSummary(result.role);
-        this.renderClarifyingQuestions(result.clarifyingQuestions);
-
-        // Update token count badge
-        const tokens = TokenCompressor.estimateTokens(finalPromptText);
-        if (tokenCountBadge) {
-          tokenCountBadge.textContent = `${tokens} Tokens`;
-        }
-
-        outputContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        this.runGenerator();
       });
     }
 
@@ -222,6 +160,71 @@ const App = {
         setTimeout(() => { copyBtn.innerHTML = origText; }, 2000);
       });
     }
+  },
+
+  runGenerator() {
+    const taskInput = document.getElementById('input-task');
+    const contextInput = document.getElementById('input-context');
+    const outputContainer = document.getElementById('output-meta-prompt');
+    const tokenCountBadge = document.getElementById('badge-token-count');
+
+    const task = taskInput.value;
+    const context = contextInput.value;
+    const personaFormatId = document.getElementById('select-persona-format')?.value || 'auto';
+    const toneStyleId = document.getElementById('select-tone-style')?.value || 'auto';
+    const outputFormatKey = document.getElementById('select-output-format')?.value || 'markdown';
+    const reasoningModeKey = document.getElementById('select-reasoning-mode')?.value || 'cot';
+    const enableRefining = document.getElementById('check-enable-refine')?.checked ?? true;
+    const enableSecurity = document.getElementById('check-enable-security')?.checked ?? true;
+
+    if (!task || task.trim().length === 0) {
+      alert('Please enter a prompt, task, or question.');
+      return;
+    }
+
+    // Collect answered clarifying questions from UI if any exist
+    const userClarificationAnswers = [];
+    this.activeClarifyingQuestions.forEach((q, idx) => {
+      const inputEl = document.getElementById(`input-clarify-${idx}`);
+      if (inputEl && inputEl.value.trim().length > 0) {
+        userClarificationAnswers.push({ question: q, answer: inputEl.value.trim() });
+      }
+    });
+
+    // Generate Meta-Prompt
+    const result = MetaPromptEngine.generateMetaPrompt({
+      task,
+      context,
+      personaFormatId,
+      toneStyleId,
+      outputFormatKey,
+      reasoningModeKey,
+      enableRefining,
+      enableSecurityCheck: enableSecurity,
+      userClarificationAnswers,
+      attachments: MultimodalHandler.attachments
+    });
+
+    this.activeClarifyingQuestions = result.clarifyingQuestions;
+
+    // Security check header badge
+    if (enableSecurity) {
+      const scan = SecurityScanner.scan(result.metaPrompt);
+      this.renderHeaderSecurityIndicator(scan);
+    }
+
+    this.currentMetaPrompt = result.metaPrompt;
+    outputContainer.textContent = result.metaPrompt;
+
+    this.renderRoleSummary(result.role);
+    this.renderClarifyingQuestions(result.clarifyingQuestions);
+
+    const tokens = TokenCompressor.estimateTokens(result.metaPrompt);
+    if (tokenCountBadge) {
+      tokenCountBadge.textContent = `${tokens} Tokens`;
+    }
+
+    outputContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   },
 
   renderRoleSummary(role) {
@@ -242,20 +245,28 @@ const App = {
     if (!container) return;
 
     if (!questions || questions.length === 0) {
-      container.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">No additional clarification needed.</div>';
+      container.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">No clarification needed.</div>';
       return;
     }
 
     container.innerHTML = questions.map((q, idx) => `
-      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12.5px;">
-        <strong style="color: var(--accent-primary);">Q${idx + 1}:</strong> ${q}
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;">
+        <label for="input-clarify-${idx}" style="font-size: 12.5px; color: var(--text-primary);">
+          <strong style="color: var(--accent-primary);">Q${idx + 1}:</strong> ${q}
+        </label>
+        <input type="text" class="form-input" id="input-clarify-${idx}" placeholder="Optional: Type your answer to incorporate into prompt context..." style="padding: 6px 10px; font-size: 12px;">
       </div>
-    `).join('');
+    `).join('') + `
+      <button type="button" class="btn btn-secondary btn-sm" id="btn-apply-clarifications" style="margin-top: 6px; align-self: flex-start;">
+        🔄 Apply Clarification Answers & Re-Synthesize
+      </button>
+    `;
+
+    document.getElementById('btn-apply-clarifications')?.addEventListener('click', () => {
+      this.runGenerator();
+    });
   },
 
-  /* ------------------------------------------------------------------
-     3. Role Advisor Tab
-     ------------------------------------------------------------------ */
   bindRoleAdvisor() {
     const applyCustomRoleBtn = document.getElementById('btn-apply-custom-role');
     if (applyCustomRoleBtn) {
@@ -281,9 +292,6 @@ const App = {
     }
   },
 
-  /* ------------------------------------------------------------------
-     4. Security Scanner Tab
-     ------------------------------------------------------------------ */
   bindSecurityScanner() {
     const scanBtn = document.getElementById('btn-run-security-scan');
     const autoRedactBtn = document.getElementById('btn-auto-redact');
@@ -326,19 +334,19 @@ const App = {
 
     if (banner) {
       banner.className = `security-banner ${scan.status}`;
-      if (scan.status === 'safe') {
-        banner.innerHTML = '✓ <strong>Security Scan Clean:</strong> No PII, API keys, or security vulnerabilities detected.';
+      if (scan.status === 'safe' || scan.findings.length === 0) {
+        banner.innerHTML = '✓ <strong>Scan Complete:</strong> 0 Vulnerabilities or PII Detected.';
       } else if (scan.status === 'warning') {
-        banner.innerHTML = `⚠️ <strong>Security Risk Score ${scan.riskScore}/100:</strong> Found ${scan.summary.total} potential sensitivity item(s).`;
+        banner.innerHTML = `⚠️ <strong>Security Notice (${scan.riskScore}/100):</strong> Found ${scan.summary.total} sensitivity item(s).`;
       } else {
-        banner.innerHTML = `🚨 <strong>High Risk Security Flag (${scan.riskScore}/100):</strong> Detected ${scan.summary.highCount} HIGH severity secret/PII risk(s).`;
+        banner.innerHTML = `🚨 <strong>High Risk Flag (${scan.riskScore}/100):</strong> Detected ${scan.summary.highCount} HIGH severity secret/PII risk(s).`;
       }
     }
 
     if (findingsList) {
       findingsList.innerHTML = '';
       if (scan.findings.length === 0) {
-        findingsList.innerHTML = '<div style="color: var(--text-muted); font-size: 13px;">No security vulnerabilities or PII detected.</div>';
+        findingsList.innerHTML = '<div style="color: var(--text-muted); font-size: 13px;">Scan Complete: 0 Vulnerabilities Detected.</div>';
         return;
       }
 
@@ -362,16 +370,13 @@ const App = {
     const indicator = document.getElementById('header-security-indicator');
     if (!indicator) return;
 
-    if (scan.status === 'safe') {
-      indicator.innerHTML = '<span style="color: #34d399; font-size: 11px;">🛡️ Clean</span>';
+    if (scan.status === 'safe' || scan.summary.total === 0) {
+      indicator.innerHTML = '<span style="color: #34d399; font-size: 11px;">🛡️ 0 Vulnerabilities</span>';
     } else {
-      indicator.innerHTML = `<span style="color: #f87171; font-size: 11px;">⚠️ ${scan.summary.total} Risks</span>`;
+      indicator.innerHTML = `<span style="color: #f87171; font-size: 11px;">⚠️ ${scan.summary.total} Addressed</span>`;
     }
   },
 
-  /* ------------------------------------------------------------------
-     5. Token Compressor Tab
-     ------------------------------------------------------------------ */
   bindTokenCompressor() {
     const compressBtn = document.getElementById('btn-run-compression');
 
@@ -404,9 +409,6 @@ const App = {
     }
   },
 
-  /* ------------------------------------------------------------------
-     6. LaunchDarkly Prompt Versioning Tab & QC
-     ------------------------------------------------------------------ */
   bindVersionManager() {
     const saveVerBtn = document.getElementById('btn-save-new-version');
     const compareBtn = document.getElementById('btn-compare-versions');
@@ -529,9 +531,6 @@ const App = {
     }
   },
 
-  /* ------------------------------------------------------------------
-     7. Multimodal Inputs Handler
-     ------------------------------------------------------------------ */
   bindMultimodal() {
     MultimodalHandler.init('dropzone-media', 'input-media-files', 'media-preview-container', (attachments) => {
       const badge = document.getElementById('badge-multimodal-count');
@@ -551,9 +550,6 @@ const App = {
     });
   },
 
-  /* ------------------------------------------------------------------
-     8. Quick Sample Prompts Loader
-     ------------------------------------------------------------------ */
   bindSamplePrompts() {
     const sampleSelect = document.getElementById('select-sample-prompts');
     if (!sampleSelect) return;
