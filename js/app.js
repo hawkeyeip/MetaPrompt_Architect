@@ -1,6 +1,6 @@
 /**
- * App Controller (Master Orchestrator)
- * Binds UI events across tabs, orchestrates MetaPrompt, Security, Compression & LaunchDarkly Versioning.
+ * App Controller (v0.2.0 Master Orchestrator)
+ * Binds UI events, handles dynamic role synthesis, persona style dropdown, dynamic clarifying questions & LaunchDarkly versioning.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,10 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 const App = {
-  selectedRole: null,
   currentMetaPrompt: '',
 
   init() {
+    this.populateDropdownOptions();
     this.bindNavigation();
     this.bindGenerator();
     this.bindRoleAdvisor();
@@ -20,9 +20,20 @@ const App = {
     this.bindVersionManager();
     this.bindMultimodal();
     this.bindSamplePrompts();
+  },
 
-    // Default recommendation setup
-    this.updateRoleRecommendations();
+  /* ------------------------------------------------------------------
+     0. Populate Select Options (Persona Styles, Output Formats, Reasoning)
+     ------------------------------------------------------------------ */
+  populateDropdownOptions() {
+    const styleSelect = document.getElementById('select-persona-style');
+    if (styleSelect) {
+      styleSelect.innerHTML = '';
+      RoleAdvisor.personaStyles.forEach(s => {
+        const opt = new Option(`${s.name} — ${s.description}`, s.id);
+        styleSelect.add(opt);
+      });
+    }
   },
 
   /* ------------------------------------------------------------------
@@ -45,7 +56,6 @@ const App = {
           activePanel.classList.add('active');
         }
 
-        // Refresh views on tab change
         if (targetView === 'versioning') {
           this.renderVersionHistory();
         } else if (targetView === 'compressor') {
@@ -68,35 +78,26 @@ const App = {
     const copyBtn = document.getElementById('btn-copy-prompt');
     const tokenCountBadge = document.getElementById('badge-token-count');
 
-    // Real-time role recommendation as user types task
-    if (taskInput) {
-      taskInput.addEventListener('input', () => {
-        this.updateRoleRecommendations();
-      });
-    }
-
     if (generateBtn) {
       generateBtn.addEventListener('click', () => {
         const task = taskInput.value;
         const context = contextInput.value;
+        const personaStyleId = document.getElementById('select-persona-style')?.value || 'domain_authority';
         const outputFormat = document.getElementById('select-output-format')?.value || 'Structured Markdown';
-        const reasoningMode = document.getElementById('select-reasoning-mode')?.value || 'Step-by-Step Chain of Thought';
+        const reasoningMode = document.getElementById('select-reasoning-mode')?.value || 'Step-by-Step Chain of Thought (CoT)';
         const enableRefining = document.getElementById('check-enable-refine')?.checked ?? true;
         const enableSecurity = document.getElementById('check-enable-security')?.checked ?? true;
 
         if (!task || task.trim().length === 0) {
-          alert('Please enter a task or topic for your prompt.');
+          alert('Please enter a prompt, task, or question.');
           return;
         }
 
-        // Get selected role or fallback to default
-        const role = this.selectedRole || RoleAdvisor.recommendRoles(task)[0];
-
         // Generate Meta-Prompt
         const result = MetaPromptEngine.generateMetaPrompt({
-          role,
           task,
           context,
+          personaStyleId,
           outputFormat,
           reasoningMode,
           enableRefining,
@@ -104,7 +105,7 @@ const App = {
           attachments: MultimodalHandler.attachments
         });
 
-        // If security enabled, perform security scan on output
+        // Security check if enabled
         let finalPromptText = result.metaPrompt;
         if (enableSecurity) {
           const scan = SecurityScanner.scan(finalPromptText);
@@ -113,6 +114,10 @@ const App = {
 
         this.currentMetaPrompt = finalPromptText;
         outputContainer.textContent = finalPromptText;
+
+        // Render dynamic role summary & clarifying questions in UI
+        this.renderRoleSummary(result.role);
+        this.renderClarifyingQuestions(result.clarifyingQuestions);
 
         // Update token badge
         const tokens = TokenCompressor.estimateTokens(finalPromptText);
@@ -139,58 +144,39 @@ const App = {
     }
   },
 
-  /* ------------------------------------------------------------------
-     3. Role Advisor Tab & Panel
-     ------------------------------------------------------------------ */
-  updateRoleRecommendations() {
-    const taskInput = document.getElementById('input-task');
-    const text = taskInput ? taskInput.value : '';
-    const recommendations = RoleAdvisor.recommendRoles(text);
+  renderRoleSummary(role) {
+    const badgeRole = document.getElementById('badge-active-role');
+    const summaryBox = document.getElementById('recommended-role-summary');
 
-    const container = document.getElementById('role-recommendations-container');
-    if (!container) return;
-
-    container.innerHTML = '';
-    recommendations.forEach((role, idx) => {
-      const card = document.createElement('div');
-      card.className = `role-card ${this.selectedRole?.id === role.id ? 'selected' : ''}`;
-      card.innerHTML = `
-        <div class="role-card-header">
-          <span class="role-name">${role.name}</span>
-          <span class="role-score">${role.matchScore}% Match</span>
-        </div>
-        <div class="role-description">${role.description}</div>
-        <div class="role-tags">
-          <span class="role-tag">Tone: ${role.tone}</span>
-          <span class="role-tag">${role.category}</span>
-        </div>
+    if (badgeRole) badgeRole.textContent = role.title;
+    if (summaryBox) {
+      summaryBox.innerHTML = `
+        <div style="font-weight: 700; color: #ffffff; font-size: 13.5px;">Synthesized Role: ${role.title}</div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${role.rationale}</div>
       `;
-
-      card.addEventListener('click', () => {
-        this.selectedRole = role;
-        document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-
-        const activeRoleBadge = document.getElementById('badge-active-role');
-        if (activeRoleBadge) {
-          activeRoleBadge.textContent = role.name;
-        }
-      });
-
-      // Default select top recommendation if none selected
-      if (idx === 0 && !this.selectedRole) {
-        this.selectedRole = role;
-        card.classList.add('selected');
-        const activeRoleBadge = document.getElementById('badge-active-role');
-        if (activeRoleBadge) activeRoleBadge.textContent = role.name;
-      }
-
-      container.appendChild(card);
-    });
+    }
   },
 
+  renderClarifyingQuestions(questions) {
+    const container = document.getElementById('clarifying-questions-container');
+    if (!container) return;
+
+    if (!questions || questions.length === 0) {
+      container.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">No additional clarification needed.</div>';
+      return;
+    }
+
+    container.innerHTML = questions.map((q, idx) => `
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12.5px;">
+        <strong style="color: var(--accent-primary);">Q${idx + 1}:</strong> ${q}
+      </div>
+    `).join('');
+  },
+
+  /* ------------------------------------------------------------------
+     3. Role Advisor Tab
+     ------------------------------------------------------------------ */
   bindRoleAdvisor() {
-    // Custom role generator
     const applyCustomRoleBtn = document.getElementById('btn-apply-custom-role');
     if (applyCustomRoleBtn) {
       applyCustomRoleBtn.addEventListener('click', () => {
@@ -199,29 +185,24 @@ const App = {
         const tone = document.getElementById('custom-role-tone').value;
 
         if (!title || !system) {
-          alert('Please enter a role title and system instruction.');
+          alert('Please enter a role title and system directive.');
           return;
         }
 
         const customRole = {
-          id: 'custom_' + Date.now(),
-          name: title,
+          title,
           systemPrompt: system,
-          tone: tone || 'Professional',
-          category: 'Custom',
-          description: 'User-defined custom AI role persona.'
+          rationale: `Custom User Role: ${title} (${tone || 'Standard Tone'})`
         };
 
-        this.selectedRole = customRole;
-        const activeRoleBadge = document.getElementById('badge-active-role');
-        if (activeRoleBadge) activeRoleBadge.textContent = customRole.name;
-        alert(`Role "${title}" applied successfully!`);
+        this.renderRoleSummary(customRole);
+        alert(`Custom Role "${title}" applied successfully!`);
       });
     }
   },
 
   /* ------------------------------------------------------------------
-     4. Security Scanner Tab & Actions
+     4. Security Scanner Tab
      ------------------------------------------------------------------ */
   bindSecurityScanner() {
     const scanBtn = document.getElementById('btn-run-security-scan');
@@ -243,7 +224,6 @@ const App = {
         const redacted = SecurityScanner.autoRedact(textEl.value);
         textEl.value = redacted;
 
-        // Re-scan
         const scan = SecurityScanner.scan(redacted);
         this.renderSecurityFindings(scan);
         alert('All detected sensitive data and PII have been auto-redacted!');
@@ -269,9 +249,9 @@ const App = {
       if (scan.status === 'safe') {
         banner.innerHTML = '✓ <strong>Security Scan Clean:</strong> No PII, API keys, or security vulnerabilities detected.';
       } else if (scan.status === 'warning') {
-        banner.innerHTML = `⚠️ <strong>Security Risk Score ${scan.riskScore}/100:</strong> Found ${scan.summary.total} potential sensitivity item(s). Review recommendations below.`;
+        banner.innerHTML = `⚠️ <strong>Security Risk Score ${scan.riskScore}/100:</strong> Found ${scan.summary.total} potential sensitivity item(s).`;
       } else {
-        banner.innerHTML = `🚨 <strong>High Risk Security Flag (${scan.riskScore}/100):</strong> Detected ${scan.summary.highCount} HIGH severity secret/PII risk(s). Auto-redaction strongly recommended.`;
+        banner.innerHTML = `🚨 <strong>High Risk Security Flag (${scan.riskScore}/100):</strong> Detected ${scan.summary.highCount} HIGH severity secret/PII risk(s).`;
       }
     }
 
@@ -394,7 +374,6 @@ const App = {
   renderVersionHistory() {
     const versions = VersionManager.getAllVersions();
 
-    // Populate selectors
     const selectA = document.getElementById('select-diff-a');
     const selectB = document.getElementById('select-diff-b');
     const historyContainer = document.getElementById('version-history-list');
@@ -402,7 +381,7 @@ const App = {
     if (selectA && selectB) {
       selectA.innerHTML = '';
       selectB.innerHTML = '';
-      versions.forEach((v, idx) => {
+      versions.forEach(v => {
         const optA = new Option(`${v.version} - ${v.title}`, v.id);
         const optB = new Option(`${v.version} - ${v.title}`, v.id);
         selectA.add(optA);
@@ -430,7 +409,7 @@ const App = {
           <div style="font-size: 11px; color: var(--text-muted); display: flex; gap: 12px;">
             <span>📅 ${new Date(v.timestamp).toLocaleString()}</span>
             <span>⚡ ${v.tokenEstimate} Tokens</span>
-            ${v.variables.length > 0 ? `<span>📌 Variables: ${v.variables.map(x => `{{${x}}}`).join(', ')}</span>` : ''}
+            ${v.variables && v.variables.length > 0 ? `<span>📌 Variables: ${v.variables.map(x => `{{${x}}}`).join(', ')}</span>` : ''}
           </div>
           <div class="btn-group" style="margin-top: 6px;">
             <button class="btn btn-secondary btn-sm btn-restore" data-id="${v.id}">Restore to Generator</button>
@@ -462,10 +441,10 @@ const App = {
     const boxB = document.getElementById('diff-box-b');
 
     if (boxA && boxB) {
-      boxA.innerHTML = `<strong>${verA.version} (${verA.title})</strong>\n\n` + 
+      boxA.innerHTML = `<strong>${verA.version} (${verA.title})</strong>\n\n` +
         diff.diffA.map(l => `<span class="${l.type === 'removed' ? 'diff-line-removed' : ''}">${this.escapeHtml(l.text)}</span>`).join('\n');
-      
-      boxB.innerHTML = `<strong>${verB.version} (${verB.title})</strong>\n\n` + 
+
+      boxB.innerHTML = `<strong>${verB.version} (${verB.title})</strong>\n\n` +
         diff.diffB.map(l => `<span class="${l.type === 'added' ? 'diff-line-added' : ''}">${this.escapeHtml(l.text)}</span>`).join('\n');
     }
   },
@@ -487,7 +466,6 @@ const App = {
         const taskInput = document.getElementById('input-task');
         if (taskInput) {
           taskInput.value = text;
-          this.updateRoleRecommendations();
         }
       });
     });
@@ -520,7 +498,6 @@ const App = {
       if (samples[key]) {
         document.getElementById('input-task').value = samples[key].task;
         document.getElementById('input-context').value = samples[key].context;
-        this.updateRoleRecommendations();
       }
     });
   },

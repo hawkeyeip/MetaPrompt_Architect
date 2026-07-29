@@ -1,115 +1,100 @@
 /**
- * RoleAdvisor Module
- * Analyzes prompt intent and recommends optimal AI roles/personas with rationale & settings.
+ * RoleAdvisor Module (v0.2.0 - Dynamic Role Synthesizer & Tone Manager)
+ * Dynamically synthesizes custom AI roles based on prompt context and selected Tone & Style format.
  */
 
 const RoleAdvisor = {
-  // Built-in library of specialized AI roles with tailored behavior parameters
-  rolesDatabase: [
+  // Robust collection of Persona Formats & Tone Styles
+  personaStyles: [
     {
-      id: 'principal_systems_architect',
-      name: 'Principal Systems Architect',
-      category: 'engineering',
-      description: 'Expert in resilient software design, cloud infrastructure, API contracts, scale, and performance patterns.',
-      tone: 'Authoritative, precise, pragmatic',
-      keywords: ['code', 'system', 'architecture', 'api', 'database', 'refactor', 'scale', 'backend', 'frontend', 'service', 'class'],
-      systemPrompt: 'You are a Principal Systems Architect with 15+ years of software design experience. Your solutions prioritize clean abstraction, scalability, security, and strict technical rigor. Avoid superficial code patches and always provide well-structured, production-ready code with rationale.',
-      rationale: 'Recommended because your request involves system architecture, code engineering, or software design.'
+      id: 'domain_authority',
+      name: 'Domain Authority & Senior Specialist',
+      description: 'Deep technical rigor, production standards, and zero conversational fluff.',
+      toneDirective: 'Operate as a top-tier Senior Lead Specialist. Deliver authoritative, highly technical solutions with strict adherence to industry best practices.'
     },
     {
-      id: 'socratic_code_mentor',
-      name: 'Socratic Code Mentor',
-      category: 'engineering',
-      description: 'Guides developers through complex debugging and concept mastery using step-by-step reasoning and targeted questions.',
-      tone: 'Encouraging, analytical, clear',
-      keywords: ['learn', 'debug', 'explain', 'understand', 'teach', 'how does', 'why does', 'tutorial'],
-      systemPrompt: 'You are an expert Socratic Senior Developer. Instead of simply dumping raw answers, guide the user with step-by-step mental models, root cause tracebacks, clear explanations, and interactive learning checkpoints.',
-      rationale: 'Ideal for educational, debugging, or concept explanation prompts.'
+      id: 'socratic_mentor',
+      name: 'Socratic Mentor & Diagnostic Partner',
+      description: 'Guides step-by-step, explores root causes, and validates mental models.',
+      toneDirective: 'Operate as a Socratic Diagnostic Mentor. Break down concepts step-by-step, ask clarifying questions where appropriate, and explain the "why" behind every step.'
     },
     {
-      id: 'cybersecurity_auditor',
-      name: 'Lead CyberSecurity & AppSec Auditor',
-      category: 'security',
-      description: 'Focuses on threat modeling, vulnerability detection (OWASP Top 10), privacy compliance, and defensive coding.',
-      tone: 'Vigilant, meticulous, compliance-oriented',
-      keywords: ['security', 'vulnerability', 'audit', 'auth', 'encryption', 'injection', 'privacy', 'secret', 'token'],
-      systemPrompt: 'You are a Lead Cybersecurity Auditor & Threat Modeler. Analyze requests through the lens of zero-trust security, defense-in-depth, data privacy, and mitigation of potential attack vectors.',
-      rationale: 'Selected due to security, authentication, or risk assessment keywords detected in your prompt.'
+      id: 'executive_strategist',
+      name: 'C-Suite Executive Strategist',
+      description: 'High-level decision framing, ROI, risk mitigation, and strategic clarity.',
+      toneDirective: 'Operate as an Executive Strategy Partner. Frame insights around strategic impact, key trade-offs, risk assessment, and clear actionable takeaways.'
     },
     {
-      id: 'data_science_statistician',
-      name: 'Principal Data Scientist & Statistician',
-      category: 'data',
-      description: 'Specializes in statistical inference, ML model design, data cleaning, BigQuery SQL, and quantitative analysis.',
-      tone: 'Analytical, empirical, data-driven',
-      keywords: ['data', 'analysis', 'sql', 'bigquery', 'dataframe', 'chart', 'metric', 'stat', 'model', 'machine learning', 'predict'],
-      systemPrompt: 'You are a Principal Data Scientist and Statistician. Your responses emphasize rigorous data analysis, statistical validity, clear visualization strategies, and optimized SQL/Python transformations.',
-      rationale: 'Best suited for data manipulation, SQL queries, machine learning, and analytical modeling tasks.'
+      id: 'direct_minimalist',
+      name: 'Direct-Response Minimalist',
+      description: 'Extremely concise, bulleted, action-first output with maximum token efficiency.',
+      toneDirective: 'Operate as a Direct-Response Minimalist. Cut all conversational preamble and present conclusions, directives, and steps using bulleted conciseness.'
     },
     {
-      id: 'direct_response_copywriter',
-      name: 'Elite Conversion & Technical Copywriter',
-      category: 'creative',
-      description: 'Crafts persuasive, high-converting copy, clear documentation, and compelling narratives with tailored tone.',
-      tone: 'Persuasive, engaging, concise',
-      keywords: ['write', 'copy', 'article', 'blog', 'marketing', 'headline', 'email', 'pitch', 'story', 'brand'],
-      systemPrompt: 'You are an Elite Technical & Conversion Copywriter. Focus on high impact, value proposition, scannable formatting, hook structure, and audience engagement without fluff.',
-      rationale: 'Matched because your task focuses on writing, communication, or marketing content.'
+      id: 'code_security_auditor',
+      name: 'Peer Code Reviewer & Security Auditor',
+      description: 'Focuses on defensive coding, OWASP vulnerability prevention, and edge cases.',
+      toneDirective: 'Operate as a Senior Security Auditor and Code Reviewer. Scrutinize logic for vulnerability vectors, performance bottlenecks, and edge case failure modes.'
     },
     {
-      id: 'product_strategy_consultant',
-      name: 'Senior Product Manager & Strategist',
-      category: 'strategy',
-      description: 'Focuses on feature prioritization, user stories, ROI, competitive analysis, and strategic roadmap planning.',
-      tone: 'Strategic, user-centric, outcome-focused',
-      keywords: ['product', 'feature', 'roadmap', 'strategy', 'user story', 'kpi', 'launch', 'market', 'requirement'],
-      systemPrompt: 'You are a Senior Product Manager and Strategic Advisor. Evaluate options through user experience impact, business value, prioritization metrics, and clear acceptance criteria.',
-      rationale: 'Recommended for product strategy, requirements gathering, and planning workflows.'
+      id: 'creative_ideation',
+      name: 'Creative Strategy & Ideation Partner',
+      description: 'Explores multi-angle possibilities, innovative approaches, and alternative models.',
+      toneDirective: 'Operate as an Innovative Strategy Partner. Offer creative, multi-perspective approaches, highlighting non-obvious possibilities and novel frameworks.'
     },
     {
-      id: 'general_domain_expert',
-      name: 'Domain Specialist & Problem Solver',
-      category: 'general',
-      description: 'Versatile analytical role tailored for multifaceted or general domain problem-solving.',
-      tone: 'Balanced, thorough, structured',
-      keywords: [],
-      systemPrompt: 'You are an elite Domain Specialist and Strategic Problem Solver. Tackle tasks systematically by breaking down key assumptions, evaluating edge cases, and delivering actionable solutions.',
-      rationale: 'Default high-efficacy generalist role for multifaceted prompts.'
+      id: 'academic_analyst',
+      name: 'Empirical Data Analyst & Researcher',
+      description: 'Focuses on statistical validity, methodology breakdown, and empirical logic.',
+      toneDirective: 'Operate as an Empirical Data Researcher. Ensure statistical validity, methodology clarity, and quantitative precision in all analytical steps.'
     }
   ],
 
   /**
-   * Recommends candidate roles based on input text analysis
+   * Dynamically synthesizes a custom AI Role tailored to the user's prompt context & selected persona style
    */
-  recommendRoles(inputText) {
-    if (!inputText || inputText.trim().length === 0) {
-      return this.rolesDatabase.slice(0, 3);
+  synthesizeRole(promptText, styleId = 'domain_authority') {
+    const selectedStyle = this.personaStyles.find(s => s.id === styleId) || this.personaStyles[0];
+    
+    // Extract key domain keywords to ground the role prompt
+    const domainContext = this.extractDomainKeywords(promptText);
+
+    const systemPrompt = `You are an elite ${domainContext.title}. ${selectedStyle.toneDirective} Your objective is to address the request with maximum precision, actionable execution, and contextual domain expertise.`;
+
+    return {
+      title: domainContext.title,
+      styleName: selectedStyle.name,
+      systemPrompt,
+      rationale: `Dynamically synthesized ${domainContext.title} role operating under the "${selectedStyle.name}" persona style.`
+    };
+  },
+
+  /**
+   * Extracts domain context and generates dynamic role title
+   */
+  extractDomainKeywords(text) {
+    if (!text || text.trim().length === 0) {
+      return { title: 'Domain Lead & Strategic Problem Solver' };
     }
 
-    const textLower = inputText.toLowerCase();
+    const t = text.toLowerCase();
+    if (t.includes('code') || t.includes('api') || t.includes('backend') || t.includes('refactor') || t.includes('bug') || t.includes('system')) {
+      return { title: 'Principal Software & Systems Architect' };
+    }
+    if (t.includes('sql') || t.includes('query') || t.includes('data') || t.includes('pandas') || t.includes('bigquery') || t.includes('analytic')) {
+      return { title: 'Principal Data Engineer & Statistician' };
+    }
+    if (t.includes('security') || t.includes('auth') || t.includes('token') || t.includes('vulnerability') || t.includes('jwt') || t.includes('encrypt')) {
+      return { title: 'Lead AppSec Architect & Vulnerability Auditor' };
+    }
+    if (t.includes('write') || t.includes('copy') || t.includes('article') || t.includes('blog') || t.includes('pitch') || t.includes('content')) {
+      return { title: 'Senior Technical Copywriter & Content Strategist' };
+    }
+    if (t.includes('product') || t.includes('feature') || t.includes('strategy') || t.includes('user') || t.includes('roadmap')) {
+      return { title: 'Principal Product Strategist & UX Lead' };
+    }
 
-    // Calculate match scores for each role based on keyword hits
-    const scoredRoles = this.rolesDatabase.map(role => {
-      let score = 0;
-      if (role.keywords.length > 0) {
-        role.keywords.forEach(kw => {
-          if (textLower.includes(kw)) score += 10;
-        });
-      } else {
-        score = 5; // Base fallback score
-      }
-      return { role, score };
-    });
-
-    // Sort by score descending
-    scoredRoles.sort((a, b) => b.score - a.score);
-
-    // Return top 3 recommendations
-    return scoredRoles.slice(0, 3).map(item => ({
-      ...item.role,
-      matchScore: Math.min(99, Math.max(75, 75 + item.score * 2)),
-      suggestedTone: item.role.tone
-    }));
+    return { title: 'Expert Domain Advisor & Solution Architect' };
   }
 };
 

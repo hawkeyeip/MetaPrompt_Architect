@@ -38,7 +38,7 @@
   <main class="main-container">
     <nav class="tabs-navigation">
       <button class="tab-btn active" data-tab="generator">⚡ Generator</button>
-      <button class="tab-btn" data-tab="advisor">🤖 Advisor</button>
+      <button class="tab-btn" data-tab="advisor">🤖 Persona</button>
       <button class="tab-btn" data-tab="security">🛡️ Security</button>
       <button class="tab-btn" data-tab="compressor">🗜️ Compress</button>
       <button class="tab-btn" data-tab="versioning">🏷️ Versions</button>
@@ -48,13 +48,18 @@
     <section class="view-panel active" id="view-generator">
       <div class="glass-card">
         <div class="form-group">
-          <label class="form-label" for="input-task">Core Task / Objective</label>
+          <label class="form-label" for="input-task">Prompt, Task, or Core Endeavor</label>
           <textarea class="form-textarea" id="input-task" style="min-height: 90px;" placeholder="Enter prompt task..."></textarea>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="input-context">Context (Optional)</label>
-          <textarea class="form-textarea" id="input-context" style="min-height: 60px;" placeholder="Enter context..."></textarea>
+          <textarea class="form-textarea" id="input-context" style="min-height: 50px;" placeholder="Enter context..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-persona-style">Persona Format / Style</label>
+          <select class="form-select" id="select-persona-style"></select>
         </div>
 
         <div class="flex-between">
@@ -66,14 +71,11 @@
           </label>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Role Candidate</label>
-          <div id="role-recommendations-container" style="display: flex; flex-direction: column; gap: 6px;"></div>
-        </div>
-
         <button type="button" class="btn btn-primary btn-block" id="btn-generate-prompt">
           ⚡ Architect Meta-Prompt
         </button>
+
+        <div id="recommended-role-summary" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 12px; margin-top: 8px;"></div>
 
         <div class="card-header" style="margin-top: 8px;">
           <span style="font-weight: 600; font-size: 12px;">Generated Output</span>
@@ -89,7 +91,7 @@
     <!-- VIEW 2: Advisor -->
     <section class="view-panel" id="view-advisor">
       <div class="glass-card">
-        <h3 style="font-size: 0.9rem; font-weight: 600;">Custom AI Role</h3>
+        <h3 style="font-size: 0.9rem; font-weight: 600;">Custom AI Directive</h3>
         <div class="form-group">
           <label class="form-label" for="custom-role-title">Title</label>
           <input type="text" class="form-input" id="custom-role-title" placeholder="Role title">
@@ -98,7 +100,7 @@
           <label class="form-label" for="custom-role-system">Directive</label>
           <textarea class="form-textarea" id="custom-role-system" style="min-height: 80px;" placeholder="System prompt..."></textarea>
         </div>
-        <button type="button" class="btn btn-primary btn-sm" id="btn-apply-custom-role">Apply Role</button>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-apply-custom-role">Apply Directive</button>
       </div>
     </section>
 

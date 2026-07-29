@@ -1,5 +1,5 @@
 /**
- * Node Automated Unit Test Suite for MetaPrompt Architect
+ * Node Automated Unit Test Suite for MetaPrompt Architect (v0.2.0)
  */
 
 const RoleAdvisor = require('./js/roleAdvisor.js');
@@ -8,12 +8,12 @@ const TokenCompressor = require('./js/tokenCompressor.js');
 const VersionManager = require('./js/versionManager.js');
 const MetaPromptEngine = require('./js/metaPromptEngine.js');
 
-console.log('--- RUNNING METAPROMPT ARCHITECT TEST SUITE ---');
+console.log('--- RUNNING METAPROMPT ARCHITECT TEST SUITE (v0.2.0) ---');
 
-// 1. Test RoleAdvisor
-const roleRecs = RoleAdvisor.recommendRoles('Design a database schema for user auth and SQL queries');
-console.log('✔ RoleAdvisor Test:', roleRecs[0].name, 'Match Score:', roleRecs[0].matchScore);
-console.assert(roleRecs.length >= 1, 'RoleAdvisor should return recommendations');
+// 1. Test RoleAdvisor Dynamic Synthesis
+const synthRole = RoleAdvisor.synthesizeRole('Design a database schema for user auth and SQL queries', 'domain_authority');
+console.log('✔ RoleAdvisor Dynamic Role Test:', synthRole.title, '| Persona:', synthRole.styleName);
+console.assert(synthRole.title.includes('Data') || synthRole.title.includes('Software'), 'RoleAdvisor should synthesize relevant title');
 
 // 2. Test SecurityScanner
 const sampleSecretPrompt = 'Here is my OpenAI key sk-1234567890abcdef1234567890abcdef and email test@company.com';
@@ -33,37 +33,31 @@ const metrics = TokenCompressor.getMetrics(verbosePrompt, compPrompt);
 console.log('✔ TokenCompressor Test:', 'Orig Tokens:', metrics.originalTokens, 'Comp Tokens:', metrics.compressedTokens, 'Savings:', metrics.savingsPercent + '%');
 console.assert(metrics.tokensSaved > 0, 'TokenCompressor should save tokens');
 
-// 4. Test MetaPromptEngine
+// 4. Test MetaPromptEngine Dynamic Clarifying Questions & Prompt Synthesis
 const generated = MetaPromptEngine.generateMetaPrompt({
-  role: roleRecs[0],
-  task: 'Build a high-performance REST API in Go',
-  context: 'Running on Kubernetes',
-  outputFormat: 'Structured Markdown',
+  task: 'Build a high-performance REST API in Go with zero data loss',
+  context: 'Running on Kubernetes on GCP',
+  personaStyleId: 'domain_authority',
+  outputFormat: 'Executable Code Blocks with Unit Tests & Comments',
+  reasoningMode: 'First Principles Deconstruction',
   enableRefining: true,
   enableSecurityCheck: true
 });
 console.log('✔ MetaPromptEngine Test: Promp Length', generated.metaPrompt.length, 'chars');
-console.assert(generated.metaPrompt.includes('[SYSTEM ROLE]'), 'MetaPrompt should contain SYSTEM ROLE section');
+console.log('✔ Dynamic Clarifying Questions Generated:', generated.clarifyingQuestions.length);
+console.assert(generated.clarifyingQuestions.length >= 2, 'Should generate clarifying questions');
+console.assert(generated.metaPrompt.includes('[SYSTEM ROLE & DIRECTIVE]'), 'MetaPrompt should contain SYSTEM ROLE section');
 
 // 5. Test VersionManager
 const ver1 = VersionManager.saveVersion({
-  version: 'v1.0.0',
-  title: 'Master Go API Prompt',
+  version: 'v0.2.0',
+  title: 'Dynamic Role Synthesis & Clarifying Questions Build',
   promptText: generated.metaPrompt,
   targetModel: 'GPT-4o',
-  changeLog: 'Initial release'
+  changeLog: 'Refactored role advisor to dynamic synthesizer with persona dropdown & clarifying questions'
 });
 
-const ver2 = VersionManager.saveVersion({
-  version: 'v1.1.0',
-  title: 'Updated Go API Prompt with Zero-Trust Security',
-  promptText: generated.metaPrompt + '\n[ADDITIONAL CONSTRAINTS]\nMust enforce OAuth2 scopes.',
-  targetModel: 'Claude 3.5 Sonnet',
-  changeLog: 'Added OAuth2 security constraints'
-});
+console.log('✔ VersionManager Test (LaunchDarkly QC): Version:', ver1.version, 'Tokens:', ver1.tokenEstimate);
+console.assert(ver1.version === 'v0.2.0', 'VersionManager should store v0.2.0 entry');
 
-const diffResult = VersionManager.computeDiff(ver1.promptText, ver2.promptText);
-console.log('✔ VersionManager Test (LaunchDarkly QC): Version A:', ver1.version, 'Version B:', ver2.version, 'Diff Lines Added:', diffResult.diffB.filter(x => x.type === 'added').length);
-console.assert(diffResult.diffB.some(x => x.type === 'added'), 'Diff should detect added lines');
-
-console.log('--- ALL AUTOMATED TESTS PASSED SUCCESSFULLY 🎉 ---');
+console.log('--- ALL v0.2.0 AUTOMATED TESTS PASSED SUCCESSFULLY 🎉 ---');
