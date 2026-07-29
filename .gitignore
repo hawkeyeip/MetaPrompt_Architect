@@ -1,0 +1,56 @@
+# ==============================================================================
+# MetaPrompt Architect - .gitignore
+# Standard Git ignore rules for Web/Extension Development
+# ==============================================================================
+
+# Dependency Directories
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.crt
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE & Editor Settings
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.bak
+
+# Temporary Scratch Files & Build Artifacts
+tmp/
+temp/
+*.log
+coverage/
+.nyc_output/
+
+# Extension Packed Crx Packages (Chrome Store Packaging)
+*.crx
+*.nex
+*.xpi

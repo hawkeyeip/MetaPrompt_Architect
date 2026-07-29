@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MetaPrompt Architect Popup</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body { width: 360px; height: 500px; overflow-y: auto; padding: 0; }
+  </style>
+</head>
+<body class="popup-mode">
+
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon" style="width: 28px; height: 28px;">
+        <svg viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div class="brand-title" style="font-size: 0.95rem;">MetaPrompt Architect</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" id="btn-open-full-studio" title="Open Full Studio">↗ Studio</button>
+  </header>
+
+  <main class="main-container">
+    <div class="glass-card">
+      <div class="form-group">
+        <label class="form-label" for="input-task">Quick Meta-Prompt Task</label>
+        <textarea class="form-textarea" id="input-task" style="min-height: 80px;" placeholder="What do you want the LLM to accomplish?"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Recommended Persona</label>
+        <div id="role-recommendations-container" style="display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-block" id="btn-generate-prompt">
+        ⚡ Architect Meta-Prompt
+      </button>
+
+      <div class="card-header" style="margin-top: 6px;">
+        <span style="font-weight: 600; font-size: 11.5px;">Meta-Prompt Result</span>
+        <button class="btn btn-secondary btn-sm" id="btn-copy-prompt">Copy</button>
+      </div>
+
+      <div class="code-preview" id="output-meta-prompt" style="min-height: 140px; font-size: 11.5px;">Result will render here...</div>
+    </div>
+  </main>
+
+  <script src="js/roleAdvisor.js"></script>
+  <script src="js/securityScanner.js"></script>
+  <script src="js/tokenCompressor.js"></script>
+  <script src="js/versionManager.js"></script>
+  <script src="js/metaPromptEngine.js"></script>
+  <script src="js/multimodalHandler.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('btn-open-full-studio')?.addEventListener('click', () => {
+      if (chrome && chrome.tabs) {
+        chrome.tabs.create({ url: 'index.html' });
+      } else {
+        window.open('index.html', '_blank');
+      }
+    });
+  </script>
+</body>
+</html>

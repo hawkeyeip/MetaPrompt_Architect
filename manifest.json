@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "MetaPrompt Architect - Prompt Engineering & Versioning Studio",
+  "version": "1.0.0",
+  "description": "Advanced browser extension for meta-prompting, role optimization, security scanning, token compression, LaunchDarkly prompt versioning, and multimodal inputs.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "sidePanel",
+    "clipboardWrite"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "MetaPrompt Architect"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "icons": {
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
+  }
+}

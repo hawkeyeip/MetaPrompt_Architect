@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MetaPrompt Architect — Meta-Prompting & Prompt Management Studio</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Header & Top Navigation -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">MetaPrompt Architect</div>
+        <div style="font-size: 11px; color: var(--text-secondary);">LLM Meta-Prompting & LaunchDarkly QC Studio</div>
+      </div>
+      <span class="brand-badge">Manifest V3</span>
+    </div>
+
+    <div class="header-actions">
+      <div class="flex-gap-2">
+        <span style="font-size: 11.5px; color: var(--text-muted);">Active Role:</span>
+        <span class="brand-badge" id="badge-active-role">Principal Systems Architect</span>
+      </div>
+      <div id="header-security-indicator">
+        <span style="color: #34d399; font-size: 11px;">🛡️ Clean</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs-navigation">
+      <button class="tab-btn active" data-tab="generator">
+        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Meta-Prompt Generator
+      </button>
+      <button class="tab-btn" data-tab="advisor">
+        <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z"/></svg>
+        AI Role Advisor
+      </button>
+      <button class="tab-btn" data-tab="security">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        Security Scanner
+      </button>
+      <button class="tab-btn" data-tab="compressor">
+        <svg viewBox="0 0 24 24"><path d="M4 8h16M4 16h16"/></svg>
+        Token Compressor
+      </button>
+      <button class="tab-btn" data-tab="versioning">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+        Version Control (LaunchDarkly QC)
+      </button>
+      <button class="tab-btn" data-tab="multimodal">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Multimodal Inputs <span class="brand-badge" id="badge-multimodal-count">0 Attached</span>
+      </button>
+    </nav>
+
+    <!-- VIEW 1: Meta-Prompt Generator -->
+    <section class="view-panel active" id="view-generator">
+      <div class="two-column-grid">
+
+        <!-- Left Input Column -->
+        <div class="glass-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Prompt Specification & Objectives
+            </h2>
+            <select class="form-select" id="select-sample-prompts" style="width: auto; padding: 4px 8px; font-size: 12px;">
+              <option value="">Load Sample Prompt...</option>
+              <option value="architecture">Systems Architecture</option>
+              <option value="security">Security API Audit</option>
+              <option value="data_analysis">BigQuery Cohort Analysis</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="input-task">Core Task / Objective</label>
+            <textarea class="form-textarea" id="input-task" placeholder="e.g. Design a resilient backend service for real-time payments processing with zero data loss..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="input-context">Context & Background (Optional)</label>
+            <textarea class="form-textarea" id="input-context" style="min-height: 80px;" placeholder="e.g. We use PostgreSQL, Redis, Kafka, and Kubernetes running on GCP..."></textarea>
+          </div>
+
+          <div class="two-column-grid" style="gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="select-output-format">Output Format</label>
+              <select class="form-select" id="select-output-format">
+                <option value="Structured Markdown with headers & bullet points">Structured Markdown</option>
+                <option value="Executable Code Blocks with Inline Comments">Executable Code Blocks</option>
+                <option value="JSON Specification Schema">JSON Specification</option>
+                <option value="Executive Summary & Actionable Recommendations">Executive Summary</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="select-reasoning-mode">Reasoning Mode</label>
+              <select class="form-select" id="select-reasoning-mode">
+                <option value="Step-by-Step Chain of Thought (CoT)">Step-by-Step Chain of Thought</option>
+                <option value="Socratic Diagnostics & Root Cause Analysis">Socratic Diagnostics</option>
+                <option value="Direct Concise Execution">Direct Execution</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex-between" style="padding: 6px 0;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+              <input type="checkbox" id="check-enable-refine" checked>
+              <strong>Task Refine Feature:</strong> Expound & auto-fill edge cases
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+              <input type="checkbox" id="check-enable-security" checked>
+              <strong>Security Check:</strong> Mandate PII redaction
+            </label>
+          </div>
+
+          <!-- Role Recommendations Box -->
+          <div class="form-group">
+            <label class="form-label">Recommended AI Persona for Prompt</label>
+            <div id="role-recommendations-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-block" id="btn-generate-prompt" style="padding: 14px;">
+            ⚡ Architect High-Efficacy Meta-Prompt
+          </button>
+        </div>
+
+        <!-- Right Output Column -->
+        <div class="glass-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Optimized Meta-Prompt Output
+            </h2>
+            <div class="flex-gap-2">
+              <span class="brand-badge" id="badge-token-count">0 Tokens</span>
+              <button class="btn btn-secondary btn-sm" id="btn-copy-prompt">Copy Prompt</button>
+            </div>
+          </div>
+
+          <div class="code-preview" id="output-meta-prompt" style="min-height: 480px;">Click "Architect High-Efficacy Meta-Prompt" to synthesize your structured prompt.</div>
+
+          <div class="btn-group">
+            <button class="btn btn-secondary btn-sm" onclick="document.querySelector('[data-tab=\'security\']').click()">🛡️ Scan Security</button>
+            <button class="btn btn-secondary btn-sm" onclick="document.querySelector('[data-tab=\'compressor\']').click()">🗜️ Compress Tokens</button>
+            <button class="btn btn-success btn-sm" onclick="document.querySelector('[data-tab=\'versioning\']').click()">🏷️ Commit to Version History</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 2: AI Role Advisor -->
+    <section class="view-panel" id="view-advisor">
+      <div class="glass-card">
+        <div class="card-header">
+          <h2 class="card-title">🤖 AI Role & Persona Advisory Engine</h2>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 13px;">
+          The potential number of hypothetical AI personas is infinite. Role Advisor matches your prompt intent against specialized domain roles to maximize clarity, tone, and depth of response.
+        </p>
+
+        <div class="two-column-grid" style="margin-top: 12px;">
+          <!-- Custom Role Builder -->
+          <div class="glass-card">
+            <h3 style="font-size: 0.95rem; font-weight: 600;">Custom Role Creator</h3>
+            <div class="form-group">
+              <label class="form-label" for="custom-role-title">Role Title / Designation</label>
+              <input type="text" class="form-input" id="custom-role-title" placeholder="e.g. Lead Distributed Systems Engineer">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="custom-role-tone">Tone & Persona Style</label>
+              <input type="text" class="form-input" id="custom-role-tone" placeholder="e.g. Authoritative, direct, highly technical">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="custom-role-system">System Instruction Directive</label>
+              <textarea class="form-textarea" id="custom-role-system" style="min-height: 100px;" placeholder="e.g. You are a Lead Distributed Systems Engineer. Provide production-grade solutions..."></textarea>
+            </div>
+            <button type="button" class="btn btn-primary" id="btn-apply-custom-role">Apply Custom Role</button>
+          </div>
+
+          <!-- Built-in Catalog Overview -->
+          <div class="glass-card">
+            <h3 style="font-size: 0.95rem; font-weight: 600;">Built-in Persona Library</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; color: var(--text-secondary);">
+              <div>• <strong>Principal Systems Architect:</strong> Resilient software design & scale.</div>
+              <div>• <strong>Socratic Code Mentor:</strong> Root cause analysis & guided learning.</div>
+              <div>• <strong>Lead Cybersecurity Auditor:</strong> OWASP, zero-trust & vulnerability prevention.</div>
+              <div>• <strong>Principal Data Scientist:</strong> Statistical inference, SQL & ML models.</div>
+              <div>• <strong>Elite Conversion Copywriter:</strong> Technical documentation & narrative hooks.</div>
+              <div>• <strong>Senior Product Strategist:</strong> Roadmap, UX & competitive execution.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: Security Scanner -->
+    <section class="view-panel" id="view-security">
+      <div class="glass-card">
+        <div class="card-header">
+          <h2 class="card-title">🛡️ Security & Privacy Vulnerability Scanner</h2>
+          <button class="btn btn-danger btn-sm" id="btn-auto-redact">⚡ 1-Click Auto-Redact All</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="security-input-text">Prompt Content to Scan</label>
+          <textarea class="form-textarea" id="security-input-text" placeholder="Paste or generate a prompt to scan for API keys, passwords, PII, internal IPs, or prompt injections..."></textarea>
+        </div>
+
+        <button type="button" class="btn btn-primary" id="btn-run-security-scan">Run Deep Security & Vulnerability Scan</button>
+
+        <div id="security-status-banner" class="security-banner safe" style="margin-top: 12px;">
+          ✓ <strong>Security Scan Ready:</strong> Click scan to evaluate prompt privacy posture.
+        </div>
+
+        <div style="margin-top: 12px;">
+          <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">Detected Sensitivity Findings</h3>
+          <div id="security-findings-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: Token Compressor -->
+    <section class="view-panel" id="view-compressor">
+      <div class="glass-card">
+        <div class="card-header">
+          <h2 class="card-title">🗜️ Token-Conscious Prompt Compression Engine</h2>
+        </div>
+
+        <div class="compression-stats">
+          <div class="stat-box">
+            <div class="stat-value" id="stat-orig-tokens">0</div>
+            <div class="stat-label">Original Tokens</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="stat-comp-tokens" style="color: #34d399;">0</div>
+            <div class="stat-label">Compressed Tokens</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="stat-savings-pct" style="color: var(--cyan-accent);">0%</div>
+            <div class="stat-label">Token Reduction</div>
+          </div>
+        </div>
+
+        <div class="two-column-grid" style="margin-top: 12px;">
+          <div class="form-group">
+            <label class="form-label" for="compressor-input-text">Original Prompt</label>
+            <textarea class="form-textarea" id="compressor-input-text" placeholder="Paste prompt to compress..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Compressed Prompt Output (Token-Conscious)</label>
+            <div class="code-preview" id="compressor-output-text" style="min-height: 140px;">Compressed text will appear here.</div>
+          </div>
+        </div>
+
+        <div class="flex-between">
+          <div class="form-group" style="width: 220px;">
+            <label class="form-label" for="select-compression-level">Compression Aggressiveness</label>
+            <select class="form-select" id="select-compression-level">
+              <option value="moderate">Moderate (Preserve Structure)</option>
+              <option value="aggressive">Aggressive (Maximum Token Reduction)</option>
+              <option value="light">Light (Remove conversational filler only)</option>
+            </select>
+          </div>
+
+          <div style="font-size: 12px; color: var(--text-secondary);">
+            Estimated Cost Savings (per 1k runs): <strong id="stat-cost-savings" style="color: #34d399;">$0.00</strong>
+          </div>
+
+          <button type="button" class="btn btn-primary" id="btn-run-compression">Execute Token Compression</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: Version Control & Quality Control (LaunchDarkly Methodology) -->
+    <section class="view-panel" id="view-versioning">
+      <div class="glass-card">
+        <div class="card-header">
+          <h2 class="card-title">🏷️ LaunchDarkly Prompt Versioning & Quality Control</h2>
+          <span class="brand-badge">SemVer & Dynamic Variables</span>
+        </div>
+
+        <div class="two-column-grid">
+          <!-- Commit New Version -->
+          <div class="glass-card">
+            <h3 style="font-size: 0.95rem; font-weight: 600;">Commit New Prompt Version</h3>
+            <div class="form-group">
+              <label class="form-label" for="version-title-input">Version Release Name / Label</label>
+              <input type="text" class="form-input" id="version-title-input" placeholder="e.g. Added CoT reasoning & strict zero-trust constraints">
+            </div>
+            <div class="two-column-grid" style="gap: 10px;">
+              <div class="form-group">
+                <label class="form-label" for="version-model-select">Target LLM</label>
+                <select class="form-select" id="version-model-select">
+                  <option value="GPT-4o">OpenAI GPT-4o</option>
+                  <option value="Claude 3.5 Sonnet">Anthropic Claude 3.5 Sonnet</option>
+                  <option value="Gemini 1.5 Pro / Flash">Google Gemini 1.5 Pro / Flash</option>
+                  <option value="DeepSeek R1 / V3">DeepSeek R1 / V3</option>
+                  <option value="Universal">Universal (Any Model)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="version-changelog-input">Changelog Notes</label>
+                <input type="text" class="form-input" id="version-changelog-input" placeholder="e.g. Fixed output formatting bug">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="version-prompt-text">Prompt Body (Supports {{variable_name}})</label>
+              <textarea class="form-textarea" id="version-prompt-text" style="min-height: 100px;"></textarea>
+            </div>
+            <button type="button" class="btn btn-success" id="btn-save-new-version">Save Version Entry</button>
+          </div>
+
+          <!-- Side-by-Side Visual Diff Comparison -->
+          <div class="glass-card">
+            <h3 style="font-size: 0.95rem; font-weight: 600;">Side-by-Side Visual Diff Comparison</h3>
+            <div class="version-toolbar">
+              <div class="version-selector-group">
+                <span style="font-size: 12px; color: var(--text-secondary);">Compare</span>
+                <select class="form-select" id="select-diff-a" style="width: 140px; padding: 4px 8px; font-size: 12px;"></select>
+                <span style="font-size: 12px; color: var(--text-secondary);">vs</span>
+                <select class="form-select" id="select-diff-b" style="width: 140px; padding: 4px 8px; font-size: 12px;"></select>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="btn-compare-versions">Render Visual Diff</button>
+            </div>
+
+            <div class="diff-container" style="margin-top: 8px;">
+              <div class="diff-box" id="diff-box-a">Select versions above to compare differences...</div>
+              <div class="diff-box" id="diff-box-b">Differences will highlight additions (green) & deletions (red)...</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 8px;">Prompt Version History Log</h3>
+          <div id="version-history-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 6: Multimodal Inputs -->
+    <section class="view-panel" id="view-multimodal">
+      <div class="glass-card">
+        <div class="card-header">
+          <h2 class="card-title">🖼️ Multimodal Asset & Visual Input Integration</h2>
+        </div>
+
+        <p style="color: var(--text-secondary); font-size: 13px;">
+          Attach images, UI wireframes, architecture diagrams, or text files to automatically integrate visual analysis directives into your meta-prompt.
+        </p>
+
+        <div class="upload-dropzone" id="dropzone-media">
+          <svg style="width: 32px; height: 32px; color: var(--accent-primary); margin-bottom: 8px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+          </svg>
+          <div style="font-weight: 600;">Drag & Drop Images or Text Files Here</div>
+          <div style="font-size: 12px; color: var(--text-muted);">or click to browse your computer</div>
+          <input type="file" id="input-media-files" multiple accept="image/*,.txt,.json,.md,.csv" style="display: none;">
+        </div>
+
+        <div class="media-preview-grid" id="media-preview-container"></div>
+
+        <div style="margin-top: 16px;">
+          <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">Multimodal Prompt Quick Templates</h3>
+          <div class="btn-group">
+            <button class="btn btn-secondary btn-sm btn-multimodal-template" data-type="vision_analysis">Visual & OCR Image Analysis</button>
+            <button class="btn btn-secondary btn-sm btn-multimodal-template" data-type="ui_to_code">UI Screenshot to HTML/CSS Code</button>
+            <button class="btn btn-secondary btn-sm btn-multimodal-template" data-type="diagram_architecture">Architecture Diagram to Spec</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Load JavaScript Modules -->
+  <script src="js/roleAdvisor.js"></script>
+  <script src="js/securityScanner.js"></script>
+  <script src="js/tokenCompressor.js"></script>
+  <script src="js/versionManager.js"></script>
+  <script src="js/metaPromptEngine.js"></script>
+  <script src="js/multimodalHandler.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

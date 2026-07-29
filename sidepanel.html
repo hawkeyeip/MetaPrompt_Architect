@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MetaPrompt Architect — Side Panel</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-size: 13px; }
+    .main-container { padding: 12px; gap: 12px; }
+    .two-column-grid { grid-template-columns: 1fr; }
+    .app-header { padding: 10px 14px; }
+    .card-title { font-size: 0.9rem; }
+    .tab-btn { padding: 8px 12px; font-size: 12px; }
+  </style>
+</head>
+<body class="popup-mode">
+
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon" style="width: 28px; height: 28px;">
+        <svg viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title" style="font-size: 1rem;">MetaPrompt Architect</div>
+      </div>
+    </div>
+    <div id="header-security-indicator">
+      <span style="color: #34d399; font-size: 10.5px;">🛡️ Clean</span>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <nav class="tabs-navigation">
+      <button class="tab-btn active" data-tab="generator">⚡ Generator</button>
+      <button class="tab-btn" data-tab="advisor">🤖 Advisor</button>
+      <button class="tab-btn" data-tab="security">🛡️ Security</button>
+      <button class="tab-btn" data-tab="compressor">🗜️ Compress</button>
+      <button class="tab-btn" data-tab="versioning">🏷️ Versions</button>
+    </nav>
+
+    <!-- VIEW 1: Generator -->
+    <section class="view-panel active" id="view-generator">
+      <div class="glass-card">
+        <div class="form-group">
+          <label class="form-label" for="input-task">Core Task / Objective</label>
+          <textarea class="form-textarea" id="input-task" style="min-height: 90px;" placeholder="Enter prompt task..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-context">Context (Optional)</label>
+          <textarea class="form-textarea" id="input-context" style="min-height: 60px;" placeholder="Enter context..."></textarea>
+        </div>
+
+        <div class="flex-between">
+          <label style="font-size: 11.5px; cursor: pointer;">
+            <input type="checkbox" id="check-enable-refine" checked> Task Refine
+          </label>
+          <label style="font-size: 11.5px; cursor: pointer;">
+            <input type="checkbox" id="check-enable-security" checked> Security Scan
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Role Candidate</label>
+          <div id="role-recommendations-container" style="display: flex; flex-direction: column; gap: 6px;"></div>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-block" id="btn-generate-prompt">
+          ⚡ Architect Meta-Prompt
+        </button>
+
+        <div class="card-header" style="margin-top: 8px;">
+          <span style="font-weight: 600; font-size: 12px;">Generated Output</span>
+          <div class="flex-gap-2">
+            <span class="brand-badge" id="badge-token-count">0 Tokens</span>
+            <button class="btn btn-secondary btn-sm" id="btn-copy-prompt">Copy</button>
+          </div>
+        </div>
+        <div class="code-preview" id="output-meta-prompt" style="min-height: 180px;">Synthesized prompt will appear here...</div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: Advisor -->
+    <section class="view-panel" id="view-advisor">
+      <div class="glass-card">
+        <h3 style="font-size: 0.9rem; font-weight: 600;">Custom AI Role</h3>
+        <div class="form-group">
+          <label class="form-label" for="custom-role-title">Title</label>
+          <input type="text" class="form-input" id="custom-role-title" placeholder="Role title">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="custom-role-system">Directive</label>
+          <textarea class="form-textarea" id="custom-role-system" style="min-height: 80px;" placeholder="System prompt..."></textarea>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-apply-custom-role">Apply Role</button>
+      </div>
+    </section>
+
+    <!-- VIEW 3: Security -->
+    <section class="view-panel" id="view-security">
+      <div class="glass-card">
+        <div class="flex-between">
+          <span style="font-weight: 600; font-size: 12px;">Security Scanner</span>
+          <button class="btn btn-danger btn-sm" id="btn-auto-redact">Auto-Redact</button>
+        </div>
+        <textarea class="form-textarea" id="security-input-text" style="min-height: 100px;" placeholder="Prompt to scan..."></textarea>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-run-security-scan">Scan Now</button>
+        <div id="security-status-banner" class="security-banner safe">Scan Ready</div>
+        <div id="security-findings-list" style="display: flex; flex-direction: column; gap: 6px; font-size: 11px;"></div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: Token Compressor -->
+    <section class="view-panel" id="view-compressor">
+      <div class="glass-card">
+        <div class="compression-stats">
+          <div class="stat-box"><div class="stat-value" id="stat-orig-tokens" style="font-size: 1.1rem;">0</div><div class="stat-label">Orig</div></div>
+          <div class="stat-box"><div class="stat-value" id="stat-comp-tokens" style="font-size: 1.1rem; color: #34d399;">0</div><div class="stat-label">Comp</div></div>
+          <div class="stat-box"><div class="stat-value" id="stat-savings-pct" style="font-size: 1.1rem; color: var(--cyan-accent);">0%</div><div class="stat-label">Saved</div></div>
+        </div>
+        <textarea class="form-textarea" id="compressor-input-text" style="min-height: 80px;" placeholder="Text to compress..."></textarea>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-run-compression">Compress Tokens</button>
+        <div class="code-preview" id="compressor-output-text" style="min-height: 100px;">Compressed text...</div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: Versioning -->
+    <section class="view-panel" id="view-versioning">
+      <div class="glass-card">
+        <h3 style="font-size: 0.9rem; font-weight: 600;">Prompt Versions (LaunchDarkly QC)</h3>
+        <input type="text" class="form-input" id="version-title-input" placeholder="Release name">
+        <textarea class="form-textarea" id="version-prompt-text" style="min-height: 80px;" placeholder="Prompt text"></textarea>
+        <button type="button" class="btn btn-success btn-sm" id="btn-save-new-version">Save Version</button>
+        <div id="version-history-list" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/roleAdvisor.js"></script>
+  <script src="js/securityScanner.js"></script>
+  <script src="js/tokenCompressor.js"></script>
+  <script src="js/versionManager.js"></script>
+  <script src="js/metaPromptEngine.js"></script>
+  <script src="js/multimodalHandler.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
