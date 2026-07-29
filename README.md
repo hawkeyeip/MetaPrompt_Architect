@@ -54,7 +54,7 @@
 4. Click the **Load unpacked** button located in the top-left area.
 5. Select the project directory:
    ```
-   /Users/brandonheisey/.gemini/antigravity-ide/scratch/meta-prompt-architect
+   ./meta-prompt-architect
    ```
 6. The **MetaPrompt Architect** extension icon will now appear in your extension toolbar! You can launch it as a **Popup** or open the **Side Panel** while browsing any website.
 
