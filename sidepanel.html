@@ -48,8 +48,8 @@
     <section class="view-panel active" id="view-generator">
       <div class="glass-card">
         <div class="form-group">
-          <label class="form-label" for="input-task">Prompt, Task, or Core Endeavor</label>
-          <textarea class="form-textarea" id="input-task" style="min-height: 90px;" placeholder="Enter prompt task..."></textarea>
+          <label class="form-label" for="input-task">Prompt, Task, or Endeavor</label>
+          <textarea class="form-textarea" id="input-task" style="min-height: 80px;" placeholder="Enter prompt task..."></textarea>
         </div>
 
         <div class="form-group">
@@ -58,8 +58,25 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="select-persona-style">Persona Format / Style</label>
-          <select class="form-select" id="select-persona-style"></select>
+          <label class="form-label" for="select-persona-format">Persona Format (Optional)</label>
+          <select class="form-select" id="select-persona-format"></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-tone-style">Tone & Style (Optional)</label>
+          <select class="form-select" id="select-tone-style"></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-reasoning-mode">Reasoning Mode</label>
+          <select class="form-select" id="select-reasoning-mode"></select>
+          <div class="info-tooltip-box" id="tooltip-reasoning-mode"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-output-format">Output Format</label>
+          <select class="form-select" id="select-output-format"></select>
+          <div class="info-tooltip-box" id="tooltip-output-format"></div>
         </div>
 
         <div class="flex-between">

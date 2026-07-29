@@ -23,7 +23,7 @@
         <div class="brand-title">MetaPrompt Architect</div>
         <div style="font-size: 11px; color: var(--text-secondary);">LLM Meta-Prompting & LaunchDarkly QC Studio</div>
       </div>
-      <span class="brand-badge">v0.2.0 Manifest V3</span>
+      <span class="brand-badge">v0.3.0 Manifest V3</span>
     </div>
 
     <div class="header-actions">
@@ -48,7 +48,7 @@
       </button>
       <button class="tab-btn" data-tab="advisor">
         <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z"/></svg>
-        Role & Persona Format
+        Persona Directives
       </button>
       <button class="tab-btn" data-tab="security">
         <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
@@ -88,47 +88,38 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="input-task">Prompt, Task, or Core Endeavor</label>
+            <label class="form-label" for="input-task">Prompt, Question, or Core Endeavor</label>
             <textarea class="form-textarea" id="input-task" placeholder="Enter your prompt, question, or goal (e.g. Design a resilient event-driven microservice in Go)..."></textarea>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="input-context">Context & Background (Optional)</label>
-            <textarea class="form-textarea" id="input-context" style="min-height: 70px;" placeholder="e.g. We use PostgreSQL, Redis, Kafka, and Kubernetes running on GCP..."></textarea>
+            <textarea class="form-textarea" id="input-context" style="min-height: 60px;" placeholder="e.g. We use PostgreSQL, Redis, Kafka, and Kubernetes running on GCP..."></textarea>
           </div>
 
-          <!-- Persona Style Dropdown -->
-          <div class="form-group">
-            <label class="form-label" for="select-persona-style">Desired Persona Format / Tone & Style</label>
-            <select class="form-select" id="select-persona-style"></select>
-          </div>
-
+          <!-- Optional Persona & Tone Dropdowns -->
           <div class="two-column-grid" style="gap: 12px;">
             <div class="form-group">
-              <label class="form-label" for="select-output-format">Output Format & Structure</label>
-              <select class="form-select" id="select-output-format">
-                <option value="Structured Markdown with headers & callouts">Structured Markdown</option>
-                <option value="Executable Code Blocks with Unit Tests & Comments">Executable Code & Unit Tests</option>
-                <option value="JSON Schema Directive & Sample Payload">JSON Schema & Payload</option>
-                <option value="Executive Summary & Actionable Decision Matrix">Executive Summary</option>
-                <option value="Step-by-Step Tutorial & Technical Walkthrough">Step-by-Step Tutorial</option>
-                <option value="System Architecture & Mermaid Sequence Diagram">System Architecture & Mermaid Diagram</option>
-                <option value="Data Transformation Query (BigQuery / SQL / Pandas)">SQL / Data Query Transformation</option>
-                <option value="Comparative Analysis Matrix (Pros / Cons / Trade-offs)">Comparative Trade-off Matrix</option>
-              </select>
+              <label class="form-label" for="select-persona-format">Persona Format (Optional)</label>
+              <select class="form-select" id="select-persona-format"></select>
             </div>
-
             <div class="form-group">
-              <label class="form-label" for="select-reasoning-mode">Reasoning & Methodology</label>
-              <select class="form-select" id="select-reasoning-mode">
-                <option value="Step-by-Step Chain of Thought (CoT)">Step-by-Step Chain of Thought (CoT)</option>
-                <option value="First Principles Deconstruction">First Principles Deconstruction</option>
-                <option value="Tree of Thoughts (Multi-Path Option Evaluation)">Tree of Thoughts (Multi-Path)</option>
-                <option value="Socratic Diagnostics & Root Cause Traceback">Socratic Diagnostics & Root Cause</option>
-                <option value="Defensive Failure-Mode & Edge-Case Analysis">Defensive Security & Failure-Modes</option>
-                <option value="Direct Executive Synthesis">Direct Executive Synthesis</option>
-              </select>
+              <label class="form-label" for="select-tone-style">Tone & Style (Optional)</label>
+              <select class="form-select" id="select-tone-style"></select>
             </div>
+          </div>
+
+          <!-- Reasoning Mode & Output Format Dropdowns with Tooltip Info Boxes -->
+          <div class="form-group">
+            <label class="form-label" for="select-reasoning-mode">Reasoning & Methodology</label>
+            <select class="form-select" id="select-reasoning-mode"></select>
+            <div class="info-tooltip-box" id="tooltip-reasoning-mode"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="select-output-format">Output Format & Structure</label>
+            <select class="form-select" id="select-output-format"></select>
+            <div class="info-tooltip-box" id="tooltip-output-format"></div>
           </div>
 
           <div class="flex-between" style="padding: 4px 0;">
@@ -184,14 +175,14 @@
       </div>
     </section>
 
-    <!-- VIEW 2: Role & Persona Format -->
+    <!-- VIEW 2: Persona Directives -->
     <section class="view-panel" id="view-advisor">
       <div class="glass-card">
         <div class="card-header">
           <h2 class="card-title">🤖 AI Role Synthesis & Persona Customization</h2>
         </div>
         <p style="color: var(--text-secondary); font-size: 13px;">
-          Rather than relying on static persona cards, MetaPrompt Architect dynamically formulates specialized AI system roles based on your exact endeavor and chosen tone/style format.
+          Rather than relying on static persona cards, MetaPrompt Architect dynamically formulates specialized AI system roles based on your exact endeavor and optional persona/tone overrides.
         </p>
 
         <div class="two-column-grid" style="margin-top: 12px;">
@@ -217,12 +208,13 @@
           <div class="glass-card">
             <h3 style="font-size: 0.95rem; font-weight: 600;">Available Persona Formats</h3>
             <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; color: var(--text-secondary);">
-              <div>• <strong>Domain Authority & Specialist:</strong> Technical rigor, production standards, zero fluff.</div>
+              <div>• <strong>Auto-Synthesize (Default):</strong> Dynamically detects context and formulates role.</div>
+              <div>• <strong>Domain Senior Specialist:</strong> Technical rigor, production standards, zero fluff.</div>
               <div>• <strong>Socratic Diagnostic Mentor:</strong> Step-by-step guidance, diagnostic questioning.</div>
-              <div>• <strong>C-Suite Executive Strategist:</strong> ROI, risk mitigation, high-level decision framing.</div>
+              <div>• <strong>C-Suite Executive Advisor:</strong> ROI, risk mitigation, high-level decision framing.</div>
               <div>• <strong>Direct-Response Minimalist:</strong> Concise, bulleted, action-first output.</div>
               <div>• <strong>Peer Code Reviewer & Auditor:</strong> OWASP defense, performance, edge-case audit.</div>
-              <div>• <strong>Creative Strategy Partner:</strong> Multi-perspective ideation & novel frameworks.</div>
+              <div>• <strong>Creative Ideation Partner:</strong> Multi-perspective frameworks & innovative possibilities.</div>
               <div>• <strong>Empirical Data Researcher:</strong> Statistical validity & methodology precision.</div>
             </div>
           </div>

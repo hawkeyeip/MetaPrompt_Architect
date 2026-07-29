@@ -1,6 +1,6 @@
 /**
- * App Controller (v0.2.0 Master Orchestrator)
- * Binds UI events, handles dynamic role synthesis, persona style dropdown, dynamic clarifying questions & LaunchDarkly versioning.
+ * App Controller (v0.3.0 Master Orchestrator)
+ * Handles optional persona & tone dropdowns, tooltips & output examples for reasoning modes & formats, and LaunchDarkly versioning.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,6 +12,7 @@ const App = {
 
   init() {
     this.populateDropdownOptions();
+    this.bindTooltips();
     this.bindNavigation();
     this.bindGenerator();
     this.bindRoleAdvisor();
@@ -23,17 +24,95 @@ const App = {
   },
 
   /* ------------------------------------------------------------------
-     0. Populate Select Options (Persona Styles, Output Formats, Reasoning)
+     0. Populate Dropdowns (Optional Persona Formats, Tone Styles, Reasoning, Formats)
      ------------------------------------------------------------------ */
   populateDropdownOptions() {
-    const styleSelect = document.getElementById('select-persona-style');
-    if (styleSelect) {
-      styleSelect.innerHTML = '';
-      RoleAdvisor.personaStyles.forEach(s => {
-        const opt = new Option(`${s.name} — ${s.description}`, s.id);
-        styleSelect.add(opt);
+    // 1. Persona Formats Dropdown
+    const formatSelect = document.getElementById('select-persona-format');
+    if (formatSelect && RoleAdvisor.personaFormats) {
+      formatSelect.innerHTML = '';
+      RoleAdvisor.personaFormats.forEach(f => {
+        const opt = new Option(f.name, f.id);
+        formatSelect.add(opt);
       });
     }
+
+    // 2. Tone & Style Dropdown
+    const toneSelect = document.getElementById('select-tone-style');
+    if (toneSelect && RoleAdvisor.toneStyles) {
+      toneSelect.innerHTML = '';
+      RoleAdvisor.toneStyles.forEach(t => {
+        const opt = new Option(t.name, t.id);
+        toneSelect.add(opt);
+      });
+    }
+
+    // 3. Reasoning Modes Dropdown
+    const reasoningSelect = document.getElementById('select-reasoning-mode');
+    if (reasoningSelect && MetaPromptEngine.reasoningModesInfo) {
+      reasoningSelect.innerHTML = '';
+      Object.keys(MetaPromptEngine.reasoningModesInfo).forEach(key => {
+        const item = MetaPromptEngine.reasoningModesInfo[key];
+        const opt = new Option(item.name, key);
+        reasoningSelect.add(opt);
+      });
+    }
+
+    // 4. Output Formats Dropdown
+    const outputSelect = document.getElementById('select-output-format');
+    if (outputSelect && MetaPromptEngine.outputFormatsInfo) {
+      outputSelect.innerHTML = '';
+      Object.keys(MetaPromptEngine.outputFormatsInfo).forEach(key => {
+        const item = MetaPromptEngine.outputFormatsInfo[key];
+        const opt = new Option(item.name, key);
+        outputSelect.add(opt);
+      });
+    }
+  },
+
+  /* ------------------------------------------------------------------
+     0.1 Tooltips & Dynamic Info Cards Setup
+     ------------------------------------------------------------------ */
+  bindTooltips() {
+    const reasoningSelect = document.getElementById('select-reasoning-mode');
+    const outputSelect = document.getElementById('select-output-format');
+
+    if (reasoningSelect) {
+      reasoningSelect.addEventListener('change', () => this.updateReasoningTooltip());
+      this.updateReasoningTooltip();
+    }
+
+    if (outputSelect) {
+      outputSelect.addEventListener('change', () => this.updateOutputTooltip());
+      this.updateOutputTooltip();
+    }
+  },
+
+  updateReasoningTooltip() {
+    const key = document.getElementById('select-reasoning-mode')?.value;
+    const tooltipBox = document.getElementById('tooltip-reasoning-mode');
+    if (!key || !tooltipBox || !MetaPromptEngine.reasoningModesInfo[key]) return;
+
+    const info = MetaPromptEngine.reasoningModesInfo[key];
+    tooltipBox.innerHTML = `
+      <div class="info-tooltip-title">💡 ${info.name}</div>
+      <div>${info.description}</div>
+      <div style="font-size: 11px; color: #a5b4fc; margin-top: 4px;"><strong>Best for:</strong> ${info.bestFor}</div>
+      <div class="info-tooltip-example">Example: ${info.example}</div>
+    `;
+  },
+
+  updateOutputTooltip() {
+    const key = document.getElementById('select-output-format')?.value;
+    const tooltipBox = document.getElementById('tooltip-output-format');
+    if (!key || !tooltipBox || !MetaPromptEngine.outputFormatsInfo[key]) return;
+
+    const info = MetaPromptEngine.outputFormatsInfo[key];
+    tooltipBox.innerHTML = `
+      <div class="info-tooltip-title">📄 ${info.name}</div>
+      <div>${info.description}</div>
+      <div class="info-tooltip-example">Preview:\n${info.example}</div>
+    `;
   },
 
   /* ------------------------------------------------------------------
@@ -82,9 +161,10 @@ const App = {
       generateBtn.addEventListener('click', () => {
         const task = taskInput.value;
         const context = contextInput.value;
-        const personaStyleId = document.getElementById('select-persona-style')?.value || 'domain_authority';
-        const outputFormat = document.getElementById('select-output-format')?.value || 'Structured Markdown';
-        const reasoningMode = document.getElementById('select-reasoning-mode')?.value || 'Step-by-Step Chain of Thought (CoT)';
+        const personaFormatId = document.getElementById('select-persona-format')?.value || 'auto';
+        const toneStyleId = document.getElementById('select-tone-style')?.value || 'auto';
+        const outputFormatKey = document.getElementById('select-output-format')?.value || 'markdown';
+        const reasoningModeKey = document.getElementById('select-reasoning-mode')?.value || 'cot';
         const enableRefining = document.getElementById('check-enable-refine')?.checked ?? true;
         const enableSecurity = document.getElementById('check-enable-security')?.checked ?? true;
 
@@ -97,15 +177,16 @@ const App = {
         const result = MetaPromptEngine.generateMetaPrompt({
           task,
           context,
-          personaStyleId,
-          outputFormat,
-          reasoningMode,
+          personaFormatId,
+          toneStyleId,
+          outputFormatKey,
+          reasoningModeKey,
           enableRefining,
           enableSecurityCheck: enableSecurity,
           attachments: MultimodalHandler.attachments
         });
 
-        // Security check if enabled
+        // Security scan if enabled
         let finalPromptText = result.metaPrompt;
         if (enableSecurity) {
           const scan = SecurityScanner.scan(finalPromptText);
@@ -115,17 +196,16 @@ const App = {
         this.currentMetaPrompt = finalPromptText;
         outputContainer.textContent = finalPromptText;
 
-        // Render dynamic role summary & clarifying questions in UI
+        // Render role summary & clarifying questions
         this.renderRoleSummary(result.role);
         this.renderClarifyingQuestions(result.clarifyingQuestions);
 
-        // Update token badge
+        // Update token count badge
         const tokens = TokenCompressor.estimateTokens(finalPromptText);
         if (tokenCountBadge) {
           tokenCountBadge.textContent = `${tokens} Tokens`;
         }
 
-        // Auto-scroll to result
         outputContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
     }
@@ -192,7 +272,7 @@ const App = {
         const customRole = {
           title,
           systemPrompt: system,
-          rationale: `Custom User Role: ${title} (${tone || 'Standard Tone'})`
+          rationale: `Custom User Directive: ${title} (${tone || 'Standard Tone'})`
         };
 
         this.renderRoleSummary(customRole);

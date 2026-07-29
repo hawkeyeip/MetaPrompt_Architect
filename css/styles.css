@@ -685,6 +685,39 @@ body {
 .flex-between { display: flex; align-items: center; justify-content: space-between; }
 .flex-gap-2 { display: flex; gap: 8px; align-items: center; }
 
+.info-tooltip-box {
+  background: rgba(18, 24, 38, 0.9);
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.info-tooltip-title {
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.info-tooltip-example {
+  background: #0a0d14;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #a5b4fc;
+  margin-top: 6px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
