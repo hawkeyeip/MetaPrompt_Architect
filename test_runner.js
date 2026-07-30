@@ -1,5 +1,5 @@
 /**
- * Node Automated Unit Test Suite for MetaPrompt Architect (v0.5.0)
+ * Node Automated Unit Test Suite for MetaPrompt Architect (v0.6.0)
  */
 
 const RoleAdvisor = require('./js/roleAdvisor.js');
@@ -8,33 +8,35 @@ const TokenCompressor = require('./js/tokenCompressor.js');
 const VersionManager = require('./js/versionManager.js');
 const MetaPromptEngine = require('./js/metaPromptEngine.js');
 
-console.log('--- RUNNING METAPROMPT ARCHITECT TEST SUITE (v0.5.0) ---');
+console.log('--- RUNNING METAPROMPT ARCHITECT TEST SUITE (v0.6.0) ---');
 
-// 1. Test RoleAdvisor Candidate Recommendations & Forego Option
-const candidates = RoleAdvisor.recommendRoleCandidates('Design a high performance microservice in Go', 'auto', 'auto');
-console.log('✔ Role Candidates Count:', candidates.length);
-console.assert(candidates.length >= 4, 'Should return 4 role options including Forego');
-console.assert(candidates.some(c => c.id === 'candidate_forego'), 'Should include Forego Role Option');
-
-// 2. Test Forego System Role in MetaPromptEngine
-const foregoGen = MetaPromptEngine.generateMetaPrompt({
-  task: 'Build a Go service',
-  context: 'Running on Kubernetes',
-  selectedRoleCandidate: candidates.find(c => c.id === 'candidate_forego')
+// 1. Test Educational Step Breakdown & Multi-Option Master Prompts
+const res = MetaPromptEngine.generateMetaPrompt({
+  task: 'help me come up with a new logo design idea for my company. its a lube delivery service in austin and i like the color blue',
+  context: 'On-demand delivery app',
+  enableSecurityCheck: true
 });
 
-console.log('✔ Forego Role Test Contains Neutral Directive:', foregoGen.metaPrompt.includes('[SYSTEM DIRECTIVE]'));
-console.assert(foregoGen.metaPrompt.includes('[SYSTEM DIRECTIVE]'), 'Forego role should use un-opinionated neutral system directive');
+console.log('✔ Meta-Prompt Output Generated (Length):', res.metaPrompt.length, 'chars');
+console.assert(res.metaPrompt.includes('=== META-PROMPT ARCHITECTURAL BREAKDOWN ==='), 'Should contain architectural step breakdown header');
+console.assert(res.metaPrompt.includes('Step 1: Assign a Specific Role'), 'Should contain Step 1 role explanation');
+console.assert(res.metaPrompt.includes('--- OPTION A'), 'Should contain Option A master prompt');
+console.assert(res.metaPrompt.includes('--- OPTION B'), 'Should contain Option B master prompt');
 
-// 3. Test VersionManager (v0.5.0)
+console.log('✔ Option A Length:', res.optionA.length, 'chars');
+console.log('✔ Option B Length:', res.optionB.length, 'chars');
+console.assert(res.optionA.length > 50, 'Option A should be generated');
+console.assert(res.optionB.length > 50, 'Option B should be generated');
+
+// 2. Test VersionManager (v0.6.0 Entry)
 const ver = VersionManager.saveVersion({
-  version: 'v0.5.0',
-  title: 'Multi-Candidate Role Recommendation & Forego Option Release',
-  promptText: foregoGen.metaPrompt,
+  version: 'v0.6.0',
+  title: 'Educational Step Breakdown & Option A / Option B Master Prompts Release',
+  promptText: res.metaPrompt,
   targetModel: 'GPT-4o',
-  changeLog: 'Added multi-candidate role selection chips and Forego Role option'
+  changeLog: 'Added 4-step educational architectural breakdown alongside 1-click ready-to-use Option A & Option B prompts'
 });
-console.log('✔ VersionManager Test (v0.5.0 Entry):', ver.version);
-console.assert(ver.version === 'v0.5.0', 'VersionManager should store v0.5.0 entry');
+console.log('✔ VersionManager Test (v0.6.0 Entry):', ver.version);
+console.assert(ver.version === 'v0.6.0', 'VersionManager should store v0.6.0 entry');
 
-console.log('--- ALL v0.5.0 AUTOMATED TESTS PASSED SUCCESSFULLY 🎉 ---');
+console.log('--- ALL v0.6.0 AUTOMATED TESTS PASSED SUCCESSFULLY 🎉 ---');

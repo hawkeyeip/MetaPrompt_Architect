@@ -23,7 +23,7 @@
         <div class="brand-title">MetaPrompt Architect</div>
         <div style="font-size: 11px; color: var(--text-secondary);">LLM Meta-Prompting & LaunchDarkly QC Studio</div>
       </div>
-      <span class="brand-badge">v0.5.0 Manifest V3</span>
+      <span class="brand-badge">v0.6.0 Manifest V3</span>
     </div>
 
     <div class="header-actions">
@@ -89,7 +89,7 @@
 
           <div class="form-group">
             <label class="form-label" for="input-task">Prompt, Question, or Core Endeavor</label>
-            <textarea class="form-textarea" id="input-task" placeholder="Enter your prompt, question, or goal (e.g. Design a resilient event-driven microservice in Go)..."></textarea>
+            <textarea class="form-textarea" id="input-task" placeholder="Enter your prompt, question, or goal (e.g. Help me come up with a logo design for my lube delivery service in Austin)..."></textarea>
           </div>
 
           <div class="form-group">
@@ -153,8 +153,13 @@
             </h2>
             <div class="flex-gap-2">
               <span class="brand-badge" id="badge-token-count">0 Tokens</span>
-              <button class="btn btn-secondary btn-sm" id="btn-copy-prompt">Copy Prompt</button>
             </div>
+          </div>
+
+          <div class="btn-group" style="margin-bottom: 4px;">
+            <button class="btn btn-primary btn-sm" id="btn-copy-option-a">📋 Copy Option A (Primary)</button>
+            <button class="btn btn-secondary btn-sm" id="btn-copy-option-b">📋 Copy Option B (Alternative)</button>
+            <button class="btn btn-secondary btn-sm" id="btn-copy-prompt">Copy Full Output</button>
           </div>
 
           <!-- Dynamic Role Summary Box -->
@@ -168,8 +173,8 @@
             <div id="clarifying-questions-container" style="display: flex; flex-direction: column; gap: 6px;"></div>
           </div>
 
-          <div class="form-label">Synthesized Master Meta-Prompt</div>
-          <div class="code-preview" id="output-meta-prompt" style="min-height: 280px;">Click "Architect High-Efficacy Meta-Prompt" to synthesize your structured prompt.</div>
+          <div class="form-label">Synthesized Architectural Breakdown & Master Prompts</div>
+          <div class="code-preview" id="output-meta-prompt" style="min-height: 280px;">Click "Architect High-Efficacy Meta-Prompt" to synthesize your structured prompt breakdown & Option A / Option B master prompts.</div>
 
           <div class="btn-group">
             <button class="btn btn-secondary btn-sm" onclick="document.querySelector('[data-tab=\'security\']').click()">🛡️ Scan Security</button>
@@ -216,7 +221,7 @@
             <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; color: var(--text-secondary);">
               <div>• <strong>Auto-Synthesize (Default):</strong> Dynamically detects context and formulates role.</div>
               <div>• <strong>Domain Senior Specialist:</strong> Technical rigor, production standards, zero fluff.</div>
-              <div>• <strong>Socratic Diagnostic Mentor:</strong> Step-by-step guidance, diagnostic questioning.</div>
+              <div>• <strong>Socratic Diagnostic Mentor:</strong> Step-by-Step guidance, diagnostic questioning.</div>
               <div>• <strong>C-Suite Executive Advisor:</strong> ROI, risk mitigation, high-level decision framing.</div>
               <div>• <strong>Direct-Response Minimalist:</strong> Concise, bulleted, action-first output.</div>
               <div>• <strong>Peer Code Reviewer & Auditor:</strong> OWASP defense, performance, edge-case audit.</div>

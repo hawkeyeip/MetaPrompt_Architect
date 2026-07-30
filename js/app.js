@@ -1,6 +1,6 @@
 /**
- * App Controller (v0.5.0 Master Orchestrator)
- * Multi-Candidate Role Recommendation Selector, Forego Role Option, Interactive Clarifications & Tooltips.
+ * App Controller (v0.6.0 Master Orchestrator)
+ * Multi-Option Master Prompts (Option A / Option B), Educational Step Breakdown, Interactive Clarifications & Tooltips.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const App = {
   currentMetaPrompt: '',
+  currentOptionA: '',
+  currentOptionB: '',
   selectedRoleCandidate: null,
   activeClarifyingQuestions: [],
 
@@ -138,8 +140,9 @@ const App = {
   bindGenerator() {
     const taskInput = document.getElementById('input-task');
     const generateBtn = document.getElementById('btn-generate-prompt');
-    const outputContainer = document.getElementById('output-meta-prompt');
     const copyBtn = document.getElementById('btn-copy-prompt');
+    const copyOptABtn = document.getElementById('btn-copy-option-a');
+    const copyOptBBtn = document.getElementById('btn-copy-option-b');
 
     if (taskInput) {
       taskInput.addEventListener('input', () => {
@@ -161,8 +164,34 @@ const App = {
         }
         navigator.clipboard.writeText(this.currentMetaPrompt);
         const origText = copyBtn.innerHTML;
-        copyBtn.innerHTML = '✓ Copied!';
+        copyBtn.innerHTML = '✓ Copied Full Output!';
         setTimeout(() => { copyBtn.innerHTML = origText; }, 2000);
+      });
+    }
+
+    if (copyOptABtn) {
+      copyOptABtn.addEventListener('click', () => {
+        if (!this.currentOptionA) {
+          alert('Generate a prompt first.');
+          return;
+        }
+        navigator.clipboard.writeText(this.currentOptionA);
+        const origText = copyOptABtn.innerHTML;
+        copyOptABtn.innerHTML = '✓ Copied Option A!';
+        setTimeout(() => { copyOptABtn.innerHTML = origText; }, 2000);
+      });
+    }
+
+    if (copyOptBBtn) {
+      copyOptBBtn.addEventListener('click', () => {
+        if (!this.currentOptionB) {
+          alert('Generate a prompt first.');
+          return;
+        }
+        navigator.clipboard.writeText(this.currentOptionB);
+        const origText = copyOptBBtn.innerHTML;
+        copyOptBBtn.innerHTML = '✓ Copied Option B!';
+        setTimeout(() => { copyOptBBtn.innerHTML = origText; }, 2000);
       });
     }
   },
@@ -253,6 +282,8 @@ const App = {
       });
 
       this.activeClarifyingQuestions = result.clarifyingQuestions || [];
+      this.currentOptionA = result.optionA || '';
+      this.currentOptionB = result.optionB || '';
 
       if (enableSecurity && typeof SecurityScanner !== 'undefined') {
         const scan = SecurityScanner.scan(result.metaPrompt);
@@ -289,7 +320,7 @@ const App = {
     if (summaryBox) {
       summaryBox.innerHTML = `
         <div style="font-weight: 700; color: #ffffff; font-size: 13.5px;">Selected Role: ${role.title}</div>
-        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${role.rationale || 'User-selected role candidate.'}</div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${role.rationale || 'Selected role candidate.'}</div>
       `;
     }
   },
@@ -426,10 +457,11 @@ const App = {
     const indicator = document.getElementById('header-security-indicator');
     if (!indicator) return;
 
-    if (scan.status === 'safe' || scan.summary.total === 0) {
+    const total = scan && scan.summary ? scan.summary.total : (scan && scan.findings ? scan.findings.length : 0);
+    if (scan.status === 'safe' || total === 0) {
       indicator.innerHTML = '<span style="color: #34d399; font-size: 11px;">🛡️ 0 Vulnerabilities</span>';
     } else {
-      indicator.innerHTML = `<span style="color: #f87171; font-size: 11px;">⚠️ ${scan.summary.total} Addressed</span>`;
+      indicator.innerHTML = `<span style="color: #f87171; font-size: 11px;">⚠️ ${total} Addressed</span>`;
     }
   },
 

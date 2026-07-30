@@ -101,11 +101,15 @@
 
         <div class="card-header" style="margin-top: 8px;">
           <span style="font-weight: 600; font-size: 12px;">Generated Output</span>
-          <div class="flex-gap-2">
-            <span class="brand-badge" id="badge-token-count">0 Tokens</span>
-            <button class="btn btn-secondary btn-sm" id="btn-copy-prompt">Copy</button>
-          </div>
+          <span class="brand-badge" id="badge-token-count">0 Tokens</span>
         </div>
+
+        <div class="btn-group" style="margin-bottom: 4px;">
+          <button class="btn btn-primary btn-sm" id="btn-copy-option-a">📋 Copy Option A</button>
+          <button class="btn btn-secondary btn-sm" id="btn-copy-option-b">📋 Copy Option B</button>
+          <button class="btn btn-secondary btn-sm" id="btn-copy-prompt">Copy Full</button>
+        </div>
+
         <div class="code-preview" id="output-meta-prompt" style="min-height: 180px;">Synthesized prompt will appear here...</div>
       </div>
     </section>

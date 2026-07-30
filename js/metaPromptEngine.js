@@ -1,6 +1,6 @@
 /**
- * MetaPromptEngine Module (v0.5.0)
- * Context Auto-Refiner, Objective Polisher, Multi-Candidate Role Selector & Forego Role Engine.
+ * MetaPromptEngine Module (v0.6.0 - Educational Meta Breakdown & Multi-Option Master Prompts)
+ * Synthesizes Step-by-Step Prompt Architectural Breakdowns alongside Option A / Option B Ready-to-Use Prompts.
  */
 
 const _RoleAdvisor = typeof RoleAdvisor !== 'undefined' ? RoleAdvisor : (typeof require !== 'undefined' ? require('./roleAdvisor.js') : null);
@@ -90,7 +90,7 @@ const MetaPromptEngine = {
   },
 
   /**
-   * Generates master meta-prompt with selected role candidate (or forego)
+   * Master generation engine combining Step Breakdown & Option A / Option B master prompts
    */
   generateMetaPrompt({
     task,
@@ -105,124 +105,166 @@ const MetaPromptEngine = {
     userClarificationAnswers = [],
     attachments = []
   }) {
-    // 1. Role Synthesis / Candidate Selection
+    // 1. Role Candidates
     const candidates = _RoleAdvisor ? _RoleAdvisor.recommendRoleCandidates(task, personaFormatId, toneStyleId) : [];
     const role = selectedRoleCandidate || candidates[0] || { title: 'Domain Advisor', systemPrompt: 'Provide an authoritative, direct technical response.' };
 
-    // 2. Refine & Polish Context & Objectives
+    // 2. Refine Context & Polish Objective
     const polishedObjective = enableRefining ? this.polishObjective(task) : task;
     const refinedContext = enableRefining ? this.refineContext(context, task) : (context.trim() || 'Operate with standard technical domain expertise.');
 
     // 3. Dynamic Clarifying Questions
     const clarifyingQuestions = this.generateClarifyingQuestions(task);
 
-    // 4. Formulate Clarification Answers Section
-    let clarificationSection = '';
-    const validAnswers = userClarificationAnswers.filter(a => a && a.answer && a.answer.trim().length > 0);
-    if (validAnswers.length > 0) {
-      clarificationSection = `\n[USER SPECIFICATIONS & CLARIFIED DECISION POINTS]\n` +
-        validAnswers.map(a => `• ${a.question}: ${a.answer.trim()}`).join('\n');
-    }
+    // 4. Generate Step-by-Step Educational Meta Breakdown
+    const metaBreakdown = this.buildMetaBreakdown(task, context, role, outputFormatKey);
 
-    // 5. Instruction Breakdown
-    const breakdown = this.getInstructionBreakdown(task);
+    // 5. Generate Upgraded Option A & Option B Master Prompts
+    const promptOptions = this.buildUpgradedPromptOptions({
+      task,
+      context,
+      role,
+      outputFormatKey,
+      reasoningModeKey,
+      userClarificationAnswers,
+      attachments
+    });
 
-    // 6. Reasoning & Output info
-    const reasoningInfo = this.reasoningModesInfo[reasoningModeKey] || this.reasoningModesInfo.cot;
-    const outputInfo = this.outputFormatsInfo[outputFormatKey] || this.outputFormatsInfo.markdown;
-
-    // 7. Multimodal context
-    let multimodalContext = '';
-    if (attachments && attachments.length > 0) {
-      multimodalContext = `\n\n[MULTIMODAL ATTACHMENTS & VISUAL CONTEXT]\nThe user has attached ${attachments.length} media asset(s). Refer to visual layouts, OCR text, and media context provided in this prompt stream.`;
-    }
-
-    // 8. Neat Security Section Formatting
+    // 6. Security Scan
     let securitySection = '';
     if (enableSecurityCheck) {
       const scan = _SecurityScanner ? _SecurityScanner.scan(polishedObjective + ' ' + refinedContext) : { status: 'safe', findings: [] };
-      if (scan.status === 'safe' || scan.findings.length === 0) {
-        securitySection = `[SECURITY & PRIVACY CHECK]\nScan Complete: 0 Vulnerabilities or PII Detected. All output must maintain strict data privacy.`;
+      if (scan.status === 'safe' || (scan.findings && scan.findings.length === 0)) {
+        securitySection = `[SECURITY & PRIVACY CHECK]\nScan Complete: 0 Vulnerabilities or PII Detected.`;
       } else {
-        const addressedList = scan.findings.map(f => `${f.name} (${f.replacement})`).join(', ');
-        securitySection = `[SECURITY & PRIVACY MANDATE]\nThe following sensitivity risks were identified and addressed: ${addressedList}. Ensure all generated responses maintain 100% redaction.`;
+        const addressedList = (scan.findings || []).map(f => `${f.name} (${f.replacement})`).join(', ');
+        securitySection = `[SECURITY & PRIVACY MANDATE]\nAddressed Sensitivity Items: ${addressedList}. Maintain 100% redaction.`;
       }
     }
 
-    // 9. Role Section (Check if Forego)
-    let roleSection = '';
-    if (role.id === 'candidate_forego') {
-      roleSection = `[SYSTEM DIRECTIVE]\nProvide an authoritative, direct, and un-opinionated technical response without adopting a specific persona.`;
-    } else {
-      roleSection = `[SYSTEM ROLE & DIRECTIVE]\n${role.systemPrompt}`;
-    }
+    // 7. Full Synthesized Output Document
+    const fullOutput = `=== META-PROMPT ARCHITECTURAL BREAKDOWN ===
 
-    // 10. Assemble Master Prompt Structure
-    const metaPrompt = `${roleSection}
+${metaBreakdown}
 
-[DOMAIN CONTEXT & ENVIRONMENT]
-${refinedContext}${clarificationSection}${multimodalContext}
+=== UPGRADED READY-TO-USE MASTER PROMPTS ===
 
-[CORE OBJECTIVE]
-${polishedObjective}
+--- OPTION A (Primary Focused Specification) ---
+${promptOptions.optionA}
 
-[INSTRUCTION BREAKDOWN & GUIDELINES]
-${breakdown.map(step => `• ${step}`).join('\n')}
-
-[REASONING METHODOLOGY]
-Mode: ${reasoningInfo.name}
-${reasoningInfo.description}
-
-[OUTPUT SPECIFICATIONS]
-- Format Requirement: ${outputInfo.name}
-- Format Description: ${outputInfo.description}
-- Quality Benchmark: Production-ready, authoritative, token-conscious, and directly actionable.
-- Constraints: No conversational disclaimers, no generic fillers, and strict adherence to technical accuracy.
+--- OPTION B (Exploratory / Alternative Scenario) ---
+${promptOptions.optionB}
 
 ${securitySection}`;
 
     return {
-      metaPrompt: metaPrompt.trim(),
+      metaPrompt: fullOutput.trim(),
+      optionA: promptOptions.optionA,
+      optionB: promptOptions.optionB,
       role,
       candidates,
-      polishedObjective,
-      refinedContext,
-      breakdown,
       clarifyingQuestions,
-      reasoningInfo,
-      outputInfo
+      reasoningInfo: this.reasoningModesInfo[reasoningModeKey],
+      outputInfo: this.outputFormatsInfo[outputFormatKey]
     };
+  },
+
+  /**
+   * Builds the Step-by-Step Educational Breakdown (Step 1: Role, Step 2: Details, Step 3: Vibe/Constraints, Step 4: Output)
+   */
+  buildMetaBreakdown(taskText, contextText, role, outputFormatKey) {
+    const roleAddition = role.id === 'candidate_forego' 
+      ? 'No specialized role locking — operate as a direct un-opinionated model.' 
+      : `"Act as a ${role.title}. ${role.systemPrompt.substring(0, 120)}..."`;
+
+    return `Step 1: Assign a Specific Role
+Giving the LLM a specific persona tells it which brain and domain depth to use.
+• Applied Role Directive: ${roleAddition}
+
+Step 2: Clarify Business Details & Remove Ambiguity
+Vague prompts leave the AI guessing. We clarify key variables, target audiences, and specific domain conditions.
+• Enhancements: Clarified domain parameters, target audience expectations, and operational context (${contextText.trim() || 'Standard Domain Baseline'}).
+
+Step 3: Define Style, Tone, and Constraints
+Defining constraints ensures the output matches your aesthetic or technical standards.
+• Technical & Aesthetic Rules: Applied strict formatting constraints, edge-case validation, and token-conscious conciseness.
+
+Step 4: Dictate Precise Output Format
+Instead of asking for a general response, specify exact section headers, code structure, or concept counts.
+• Output Spec: Dictated ${this.outputFormatsInfo[outputFormatKey]?.name || 'Structured Markdown'}.`;
+  },
+
+  /**
+   * Builds Option A and Option B Ready-to-Use Upgraded Prompts
+   */
+  buildUpgradedPromptOptions({ task, context, role, outputFormatKey, reasoningModeKey, userClarificationAnswers, attachments }) {
+    const outputInfo = this.outputFormatsInfo[outputFormatKey] || this.outputFormatsInfo.markdown;
+    const reasoningInfo = this.reasoningModesInfo[reasoningModeKey] || this.reasoningModesInfo.cot;
+
+    const roleHeader = role.id === 'candidate_forego'
+      ? '[SYSTEM DIRECTIVE]\nProvide an authoritative, direct, and un-opinionated technical solution.'
+      : `[SYSTEM ROLE]\nAct as an elite ${role.title}. ${role.systemPrompt}`;
+
+    const cleanContext = context.trim() ? context.trim() : 'Standard domain baseline';
+
+    // Format User Clarification Answers
+    let answersBlock = '';
+    const validAnswers = userClarificationAnswers.filter(a => a && a.answer && a.answer.trim().length > 0);
+    if (validAnswers.length > 0) {
+      answersBlock = `\n[SPECIFIED PARAMETERS]\n` + validAnswers.map(a => `- ${a.question}: ${a.answer.trim()}`).join('\n');
+    }
+
+    // Multimodal block
+    let multiBlock = attachments && attachments.length > 0 ? `\n[ATTACHED MEDIA]\nAttached ${attachments.length} visual/media asset(s). Refer to attached context.` : '';
+
+    // Option A: Primary Technical & Production Focus
+    const optionA = `${roleHeader}
+
+[OBJECTIVE & CONTEXT]
+I need a comprehensive, high-efficacy solution for: "${task}".
+Background Environment: ${cleanContext}.${answersBlock}${multiBlock}
+
+[METHODOLOGY]
+Apply ${reasoningInfo.name}. Break down key assumptions and validate logic step-by-step prior to state conclusions.
+
+[OUTPUT FORMAT & REQUIREMENTS]
+Provide output formatted as ${outputInfo.name}.
+1. Include explicit solutions addressing core requirements.
+2. Address edge cases, error states, and execution steps.
+3. Ensure token-conscious clarity with zero conversational disclaimers.`.trim();
+
+    // Option B: Multi-Variant / Alternative Scenario Focus
+    const optionB = `${roleHeader}
+
+[OBJECTIVE & ALTERNATIVE CONCEPTS]
+I need 3 distinct, high-efficacy concepts/approaches for: "${task}".
+Target Domain Context: ${cleanContext}.${answersBlock}${multiBlock}
+
+[EVALUATION METHODOLOGY]
+For each of the 3 distinct concepts/approaches, provide:
+1) Core Structure / Implementation Strategy
+2) Key Trade-offs (Pros & Cons)
+3) Psychological or Architectural rationale for why it fits the domain.
+
+[OUTPUT FORMAT]
+Format as ${outputInfo.name}. Keep explanations scannable, structured, and production-ready.`.trim();
+
+    return { optionA, optionB };
   },
 
   refineContext(rawContext, taskText) {
     if (!rawContext || rawContext.trim().length === 0) {
-      return 'Operate within standard production software & business environment baselines. Assume modern tech stack guidelines.';
+      return 'Operate within standard production software & business environment baselines.';
     }
-
-    let cleanContext = rawContext.trim();
-    cleanContext = cleanContext.replace(/we use /gi, 'Environment Stack: ');
-    cleanContext = cleanContext.replace(/running on /gi, 'Infrastructure: ');
-    cleanContext = cleanContext.replace(/with /gi, 'Constraints: ');
-
-    return `Target Environment Baseline:\n- ${cleanContext.split('\n').join('\n- ')}`;
+    return `Target Environment Baseline:\n- ${rawContext.trim()}`;
   },
 
   polishObjective(taskText) {
     if (!taskText || taskText.trim().length === 0) {
       return 'Deliver a high-efficacy, production-grade technical solution meeting all acceptance criteria.';
     }
-
     let polished = taskText.trim();
     if (!polished.endsWith('.')) polished += '.';
-
-    if (!/address|ensure|deliver|design|implement|audit|optimize/i.test(polished)) {
-      polished = `Synthesize and execute a complete solution to ${polished.toLowerCase()}`;
-    }
-
-    if (!/edge case|error|exception|test|validation/i.test(polished)) {
-      polished += ' Ensure explicit handling for edge cases, error states, and execution validation.';
-    }
-
     return polished;
   },
 
@@ -238,7 +280,11 @@ ${securitySection}`;
     const textLower = taskText.toLowerCase();
     const questions = [];
 
-    if (textLower.includes('code') || textLower.includes('api') || textLower.includes('build') || textLower.includes('app')) {
+    if (textLower.includes('logo') || textLower.includes('design') || textLower.includes('brand')) {
+      questions.push('What specific product/service category is your business delivering (e.g. automotive vs personal)?');
+      questions.push('What ideal target customer or local audience vibe (e.g. Austin lifestyle) should it convey?');
+      questions.push('What 3 adjectives describe your brand feel and color preferences?');
+    } else if (textLower.includes('code') || textLower.includes('api') || textLower.includes('build') || textLower.includes('app')) {
       questions.push('What programming language version, framework, or runtime environment is required?');
       questions.push('What performance benchmarks (e.g. latency, throughput) or error handling strategy should be targeted?');
       questions.push('Are there existing architectural patterns or API contracts that must be preserved?');
@@ -246,10 +292,6 @@ ${securitySection}`;
       questions.push('What is the target database engine (e.g. BigQuery, PostgreSQL, Snowflake) and table schema layout?');
       questions.push('What time window, aggregation grain, or filtering parameters should be applied?');
       questions.push('Should edge cases (such as null values or duplicate entries) be filtered or explicitly highlighted?');
-    } else if (textLower.includes('write') || textLower.includes('article') || textLower.includes('copy') || textLower.includes('doc')) {
-      questions.push('Who is the target reader (e.g. technical engineers, C-level executives, general public)?');
-      questions.push('What primary call-to-action or core key takeaway should the reader walk away with?');
-      questions.push('What length or section structure is preferred for maximum readability?');
     } else {
       questions.push('What specific constraints, inputs, or variables define the boundaries of this task?');
       questions.push('What secondary use cases or potential edge cases should be anticipated?');
@@ -260,26 +302,12 @@ ${securitySection}`;
   },
 
   getInstructionBreakdown(taskText) {
-    const textLower = (taskText || '').toLowerCase();
-    const breakdown = [];
-
-    breakdown.push('Step 1: Parse primary goal and identify core technical/business constraints.');
-
-    if (textLower.includes('code') || textLower.includes('build') || textLower.includes('script')) {
-      breakdown.push('Step 2: Design architecture/schema baseline before writing code.');
-      breakdown.push('Step 3: Implement clean, modular code with inline documentation & robust error handling.');
-      breakdown.push('Step 4: Provide verification tests, sanity checks, and sample usage.');
-    } else if (textLower.includes('write') || textLower.includes('article') || textLower.includes('copy')) {
-      breakdown.push('Step 2: Define reader persona and clarify value proposition hooks.');
-      breakdown.push('Step 3: Draft scannable content using bold headers, bullet points, and concise phrasing.');
-      breakdown.push('Step 4: Polish tone, eliminate redundancy, and ensure strong call-to-action alignment.');
-    } else {
-      breakdown.push('Step 2: Deconstruct key variables, dependencies, and underlying assumptions.');
-      breakdown.push('Step 3: Formulate a structured step-by-step resolution strategy.');
-      breakdown.push('Step 4: Validate outcome against target acceptance criteria.');
-    }
-
-    return breakdown;
+    return [
+      'Step 1: Assign specialized role directive or neutral domain model.',
+      'Step 2: Clarify business details, target audience, and domain context.',
+      'Step 3: Define style, tone, and technical/visual constraints.',
+      'Step 4: Dictate output structure and exact concept requirements.'
+    ];
   }
 };
 
