@@ -210,66 +210,75 @@ const App = {
   },
 
   runGenerator() {
-    const taskInput = document.getElementById('input-task');
-    const contextInput = document.getElementById('input-context');
-    const outputContainer = document.getElementById('output-meta-prompt');
-    const tokenCountBadge = document.getElementById('badge-token-count');
+    try {
+      const taskInput = document.getElementById('input-task');
+      const contextInput = document.getElementById('input-context');
+      const outputContainer = document.getElementById('output-meta-prompt');
+      const tokenCountBadge = document.getElementById('badge-token-count');
 
-    const task = taskInput.value;
-    const context = contextInput.value;
-    const personaFormatId = document.getElementById('select-persona-format')?.value || 'auto';
-    const toneStyleId = document.getElementById('select-tone-style')?.value || 'auto';
-    const outputFormatKey = document.getElementById('select-output-format')?.value || 'markdown';
-    const reasoningModeKey = document.getElementById('select-reasoning-mode')?.value || 'cot';
-    const enableRefining = document.getElementById('check-enable-refine')?.checked ?? true;
-    const enableSecurity = document.getElementById('check-enable-security')?.checked ?? true;
+      const task = taskInput ? taskInput.value : '';
+      const context = contextInput ? contextInput.value : '';
+      const personaFormatId = document.getElementById('select-persona-format')?.value || 'auto';
+      const toneStyleId = document.getElementById('select-tone-style')?.value || 'auto';
+      const outputFormatKey = document.getElementById('select-output-format')?.value || 'markdown';
+      const reasoningModeKey = document.getElementById('select-reasoning-mode')?.value || 'cot';
+      const enableRefining = document.getElementById('check-enable-refine')?.checked ?? true;
+      const enableSecurity = document.getElementById('check-enable-security')?.checked ?? true;
 
-    if (!task || task.trim().length === 0) {
-      alert('Please enter a prompt, task, or question.');
-      return;
-    }
-
-    const userClarificationAnswers = [];
-    this.activeClarifyingQuestions.forEach((q, idx) => {
-      const inputEl = document.getElementById(`input-clarify-${idx}`);
-      if (inputEl && inputEl.value.trim().length > 0) {
-        userClarificationAnswers.push({ question: q, answer: inputEl.value.trim() });
+      if (!task || task.trim().length === 0) {
+        alert('Please enter a prompt, task, or question.');
+        return;
       }
-    });
 
-    const result = MetaPromptEngine.generateMetaPrompt({
-      task,
-      context,
-      selectedRoleCandidate: this.selectedRoleCandidate,
-      personaFormatId,
-      toneStyleId,
-      outputFormatKey,
-      reasoningModeKey,
-      enableRefining,
-      enableSecurityCheck: enableSecurity,
-      userClarificationAnswers,
-      attachments: MultimodalHandler.attachments
-    });
+      const userClarificationAnswers = [];
+      (this.activeClarifyingQuestions || []).forEach((q, idx) => {
+        const inputEl = document.getElementById(`input-clarify-${idx}`);
+        if (inputEl && inputEl.value.trim().length > 0) {
+          userClarificationAnswers.push({ question: q, answer: inputEl.value.trim() });
+        }
+      });
 
-    this.activeClarifyingQuestions = result.clarifyingQuestions;
+      const result = MetaPromptEngine.generateMetaPrompt({
+        task,
+        context,
+        selectedRoleCandidate: this.selectedRoleCandidate,
+        personaFormatId,
+        toneStyleId,
+        outputFormatKey,
+        reasoningModeKey,
+        enableRefining,
+        enableSecurityCheck: enableSecurity,
+        userClarificationAnswers,
+        attachments: typeof MultimodalHandler !== 'undefined' ? MultimodalHandler.attachments : []
+      });
 
-    if (enableSecurity) {
-      const scan = SecurityScanner.scan(result.metaPrompt);
-      this.renderHeaderSecurityIndicator(scan);
+      this.activeClarifyingQuestions = result.clarifyingQuestions || [];
+
+      if (enableSecurity && typeof SecurityScanner !== 'undefined') {
+        const scan = SecurityScanner.scan(result.metaPrompt);
+        this.renderHeaderSecurityIndicator(scan);
+      }
+
+      this.currentMetaPrompt = result.metaPrompt;
+      if (outputContainer) {
+        outputContainer.textContent = result.metaPrompt;
+      }
+
+      this.renderRoleSummary(result.role);
+      this.renderClarifyingQuestions(result.clarifyingQuestions);
+
+      const tokens = typeof TokenCompressor !== 'undefined' ? TokenCompressor.estimateTokens(result.metaPrompt) : 0;
+      if (tokenCountBadge) {
+        tokenCountBadge.textContent = `${tokens} Tokens`;
+      }
+
+      if (outputContainer) {
+        outputContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    } catch (err) {
+      console.error('Error executing MetaPrompt Generator:', err);
+      alert('Error generating prompt: ' + err.message);
     }
-
-    this.currentMetaPrompt = result.metaPrompt;
-    outputContainer.textContent = result.metaPrompt;
-
-    this.renderRoleSummary(result.role);
-    this.renderClarifyingQuestions(result.clarifyingQuestions);
-
-    const tokens = TokenCompressor.estimateTokens(result.metaPrompt);
-    if (tokenCountBadge) {
-      tokenCountBadge.textContent = `${tokens} Tokens`;
-    }
-
-    outputContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   },
 
   renderRoleSummary(role) {

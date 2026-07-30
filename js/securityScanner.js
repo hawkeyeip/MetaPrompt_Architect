@@ -94,7 +94,7 @@ const SecurityScanner = {
    */
   scan(text) {
     if (!text || text.trim().length === 0) {
-      return { status: 'safe', riskScore: 0, findings: [] };
+      return { status: 'safe', riskScore: 0, summary: { highCount: 0, mediumCount: 0, lowCount: 0, total: 0 }, findings: [] };
     }
 
     const findings = [];
