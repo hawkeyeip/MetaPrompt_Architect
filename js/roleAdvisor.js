@@ -1,10 +1,9 @@
 /**
- * RoleAdvisor Module (v0.3.0 - Flexible Persona & Tone Synthesizer)
- * Synthesizes AI roles with optional persona format & tone/style overrides.
+ * RoleAdvisor Module (v0.5.0 - Multi-Candidate Role Recommendation & Forego System)
+ * Generates selectable role candidates based on prompt context, with options to forego or supply custom roles.
  */
 
 const RoleAdvisor = {
-  // Built-in Persona Formats
   personaFormats: [
     { id: 'auto', name: '-- Auto-Synthesize from Prompt Context (Recommended) --', description: 'Engine dynamically extracts context and formulates optimal persona.' },
     { id: 'senior_specialist', name: 'Domain Senior Specialist', description: 'Technical rigor, production standards, and zero fluff.' },
@@ -16,7 +15,6 @@ const RoleAdvisor = {
     { id: 'empirical_researcher', name: 'Empirical Data Researcher', description: 'Quantitative validity, methodology breakdown, empirical logic.' }
   ],
 
-  // Built-in Tone & Style options
   toneStyles: [
     { id: 'auto', name: '-- Auto-Detect Tone from Context (Recommended) --', directive: '' },
     { id: 'authoritative', name: 'Authoritative & Highly Technical', directive: 'Deliver authoritative, highly technical solutions with strict adherence to production standards.' },
@@ -28,44 +26,53 @@ const RoleAdvisor = {
   ],
 
   /**
-   * Synthesizes role directive with optional persona & tone overrides
+   * Generates 3-4 top candidate role recommendations + Forego option
    */
-  synthesizeRole(promptText, formatId = 'auto', toneId = 'auto') {
+  recommendRoleCandidates(promptText, formatId = 'auto', toneId = 'auto') {
     const domainContext = this.extractDomainKeywords(promptText);
 
-    // Determine Persona Title
-    let title = domainContext.title;
-    if (formatId !== 'auto') {
-      const selectedFormat = this.personaFormats.find(f => f.id === formatId);
-      if (selectedFormat) {
-        title = `${selectedFormat.name} (${domainContext.category})`;
+    // Dynamic Primary Candidate
+    const primaryTitle = formatId !== 'auto' 
+      ? `${(this.personaFormats.find(f => f.id === formatId) || {}).name || domainContext.title}` 
+      : domainContext.title;
+
+    const candidates = [
+      {
+        id: 'candidate_primary',
+        title: primaryTitle,
+        matchScore: 98,
+        systemPrompt: `You are an elite ${primaryTitle}. ${domainContext.defaultTone} Your objective is to address the prompt with maximum precision and contextual domain expertise.`,
+        rationale: `Primary recommended role based on context analysis of "${domainContext.category}".`
+      },
+      {
+        id: 'candidate_mentor',
+        title: `Socratic Mentor & Diagnostic Lead (${domainContext.category})`,
+        matchScore: 88,
+        systemPrompt: `You are a Senior Socratic Mentor specializing in ${domainContext.category}. Break down decisions step-by-step, explain underlying mechanics, and guide diagnostic troubleshooting.`,
+        rationale: 'Best for educational step-by-step understanding and root-cause analysis.'
+      },
+      {
+        id: 'candidate_auditor',
+        title: `Defensive Security & Performance Auditor (${domainContext.category})`,
+        matchScore: 82,
+        systemPrompt: `You are a Defensive Auditor specializing in ${domainContext.category}. Scrutinize logic for vulnerabilities, performance bottlenecks, and edge cases.`,
+        rationale: 'Best for production hardening, security audits, and risk assessment.'
+      },
+      {
+        id: 'candidate_forego',
+        title: '🚫 Forego Role Assignment (Neutral General Model)',
+        matchScore: 0,
+        systemPrompt: 'Provide an authoritative, direct, and un-opinionated technical response without adopting a specific persona.',
+        rationale: 'Omit specialized role locking and operate as a neutral high-performance LLM.'
       }
-    }
+    ];
 
-    // Determine Tone Directive
-    let toneDirective = domainContext.defaultTone;
-    if (toneId !== 'auto') {
-      const selectedTone = this.toneStyles.find(t => t.id === toneId);
-      if (selectedTone && selectedTone.directive) {
-        toneDirective = selectedTone.directive;
-      }
-    }
-
-    const systemPrompt = `You are an elite ${title}. ${toneDirective} Your objective is to address the prompt with maximum precision, contextual domain expertise, and actionable execution.`;
-
-    return {
-      title,
-      systemPrompt,
-      rationale: `Synthesized ${title} role with tone directive: "${toneDirective}".`
-    };
+    return candidates;
   },
 
-  /**
-   * Domain keyword extraction
-   */
   extractDomainKeywords(text) {
     if (!text || text.trim().length === 0) {
-      return { title: 'Domain Lead & Solution Architect', category: 'General', defaultTone: 'Deliver authoritative technical solutions.' };
+      return { title: 'Domain Lead & Solution Architect', category: 'General Problem Solving', defaultTone: 'Deliver authoritative technical solutions.' };
     }
 
     const t = text.toLowerCase();

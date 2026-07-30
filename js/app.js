@@ -1,6 +1,6 @@
 /**
- * App Controller (v0.4.0 Master Orchestrator)
- * Supports Context Refiner, Objective Polisher, Interactive Clarification Answer Fields & Streamlined Security Output.
+ * App Controller (v0.5.0 Master Orchestrator)
+ * Multi-Candidate Role Recommendation Selector, Forego Role Option, Interactive Clarifications & Tooltips.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const App = {
   currentMetaPrompt: '',
+  selectedRoleCandidate: null,
   activeClarifyingQuestions: [],
 
   init() {
@@ -136,11 +137,15 @@ const App = {
 
   bindGenerator() {
     const taskInput = document.getElementById('input-task');
-    const contextInput = document.getElementById('input-context');
     const generateBtn = document.getElementById('btn-generate-prompt');
     const outputContainer = document.getElementById('output-meta-prompt');
     const copyBtn = document.getElementById('btn-copy-prompt');
-    const tokenCountBadge = document.getElementById('badge-token-count');
+
+    if (taskInput) {
+      taskInput.addEventListener('input', () => {
+        this.updateRoleCandidatesUI();
+      });
+    }
 
     if (generateBtn) {
       generateBtn.addEventListener('click', () => {
@@ -160,6 +165,48 @@ const App = {
         setTimeout(() => { copyBtn.innerHTML = origText; }, 2000);
       });
     }
+  },
+
+  updateRoleCandidatesUI() {
+    const taskInput = document.getElementById('input-task');
+    const text = taskInput ? taskInput.value : '';
+    const personaFormatId = document.getElementById('select-persona-format')?.value || 'auto';
+    const toneStyleId = document.getElementById('select-tone-style')?.value || 'auto';
+
+    const candidates = RoleAdvisor.recommendRoleCandidates(text, personaFormatId, toneStyleId);
+    const container = document.getElementById('role-candidates-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+    candidates.forEach((cand, idx) => {
+      const isSelected = this.selectedRoleCandidate ? (this.selectedRoleCandidate.id === cand.id) : (idx === 0);
+      const card = document.createElement('div');
+      card.className = `role-card ${isSelected ? 'selected' : ''}`;
+      card.style.padding = '10px 12px';
+      card.innerHTML = `
+        <div class="role-card-header">
+          <span class="role-name">${cand.title}</span>
+          ${cand.matchScore > 0 ? `<span class="role-score">${cand.matchScore}% Match</span>` : '<span class="brand-badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">No Persona</span>'}
+        </div>
+        <div class="role-description" style="font-size: 11.5px;">${cand.rationale}</div>
+      `;
+
+      card.addEventListener('click', () => {
+        this.selectedRoleCandidate = cand;
+        document.querySelectorAll('#role-candidates-container .role-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        const badgeRole = document.getElementById('badge-active-role');
+        if (badgeRole) badgeRole.textContent = cand.title;
+      });
+
+      if (isSelected && !this.selectedRoleCandidate) {
+        this.selectedRoleCandidate = cand;
+        const badgeRole = document.getElementById('badge-active-role');
+        if (badgeRole) badgeRole.textContent = cand.title;
+      }
+
+      container.appendChild(card);
+    });
   },
 
   runGenerator() {
@@ -182,7 +229,6 @@ const App = {
       return;
     }
 
-    // Collect answered clarifying questions from UI if any exist
     const userClarificationAnswers = [];
     this.activeClarifyingQuestions.forEach((q, idx) => {
       const inputEl = document.getElementById(`input-clarify-${idx}`);
@@ -191,10 +237,10 @@ const App = {
       }
     });
 
-    // Generate Meta-Prompt
     const result = MetaPromptEngine.generateMetaPrompt({
       task,
       context,
+      selectedRoleCandidate: this.selectedRoleCandidate,
       personaFormatId,
       toneStyleId,
       outputFormatKey,
@@ -207,7 +253,6 @@ const App = {
 
     this.activeClarifyingQuestions = result.clarifyingQuestions;
 
-    // Security check header badge
     if (enableSecurity) {
       const scan = SecurityScanner.scan(result.metaPrompt);
       this.renderHeaderSecurityIndicator(scan);
@@ -234,8 +279,8 @@ const App = {
     if (badgeRole) badgeRole.textContent = role.title;
     if (summaryBox) {
       summaryBox.innerHTML = `
-        <div style="font-weight: 700; color: #ffffff; font-size: 13.5px;">Synthesized Role: ${role.title}</div>
-        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${role.rationale}</div>
+        <div style="font-weight: 700; color: #ffffff; font-size: 13.5px;">Selected Role: ${role.title}</div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${role.rationale || 'User-selected role candidate.'}</div>
       `;
     }
   },
@@ -281,11 +326,13 @@ const App = {
         }
 
         const customRole = {
+          id: 'custom_' + Date.now(),
           title,
           systemPrompt: system,
           rationale: `Custom User Directive: ${title} (${tone || 'Standard Tone'})`
         };
 
+        this.selectedRoleCandidate = customRole;
         this.renderRoleSummary(customRole);
         alert(`Custom Role "${title}" applied successfully!`);
       });
@@ -545,6 +592,7 @@ const App = {
         const taskInput = document.getElementById('input-task');
         if (taskInput) {
           taskInput.value = text;
+          this.updateRoleCandidatesUI();
         }
       });
     });
@@ -574,6 +622,7 @@ const App = {
       if (samples[key]) {
         document.getElementById('input-task').value = samples[key].task;
         document.getElementById('input-context').value = samples[key].context;
+        this.updateRoleCandidatesUI();
       }
     });
   },

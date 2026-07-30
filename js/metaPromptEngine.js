@@ -1,6 +1,6 @@
 /**
- * MetaPromptEngine Module (v0.4.0)
- * Context Auto-Refiner, Objective Polisher, Interactive Clarification Integrator, & Streamlined Security Formatter.
+ * MetaPromptEngine Module (v0.5.0)
+ * Context Auto-Refiner, Objective Polisher, Multi-Candidate Role Selector & Forego Role Engine.
  */
 
 const _RoleAdvisor = typeof RoleAdvisor !== 'undefined' ? RoleAdvisor : (typeof require !== 'undefined' ? require('./roleAdvisor.js') : null);
@@ -90,11 +90,12 @@ const MetaPromptEngine = {
   },
 
   /**
-   * Generates master meta-prompt with context refiner, objective polisher, interactive answers, and clean security section
+   * Generates master meta-prompt with selected role candidate (or forego)
    */
   generateMetaPrompt({
     task,
     context = '',
+    selectedRoleCandidate = null,
     personaFormatId = 'auto',
     toneStyleId = 'auto',
     outputFormatKey = 'markdown',
@@ -104,8 +105,9 @@ const MetaPromptEngine = {
     userClarificationAnswers = [],
     attachments = []
   }) {
-    // 1. Role Synthesis
-    const role = _RoleAdvisor ? _RoleAdvisor.synthesizeRole(task, personaFormatId, toneStyleId) : { title: 'Domain Advisor', systemPrompt: 'You are an elite Domain Advisor.', rationale: 'Default' };
+    // 1. Role Synthesis / Candidate Selection
+    const candidates = _RoleAdvisor ? _RoleAdvisor.recommendRoleCandidates(task, personaFormatId, toneStyleId) : [];
+    const role = selectedRoleCandidate || candidates[0] || { title: 'Domain Advisor', systemPrompt: 'Provide an authoritative, direct technical response.' };
 
     // 2. Refine & Polish Context & Objectives
     const polishedObjective = enableRefining ? this.polishObjective(task) : task;
@@ -147,9 +149,16 @@ const MetaPromptEngine = {
       }
     }
 
-    // 9. Assemble Master Prompt Structure
-    const metaPrompt = `[SYSTEM ROLE & DIRECTIVE]
-${role.systemPrompt}
+    // 9. Role Section (Check if Forego)
+    let roleSection = '';
+    if (role.id === 'candidate_forego') {
+      roleSection = `[SYSTEM DIRECTIVE]\nProvide an authoritative, direct, and un-opinionated technical response without adopting a specific persona.`;
+    } else {
+      roleSection = `[SYSTEM ROLE & DIRECTIVE]\n${role.systemPrompt}`;
+    }
+
+    // 10. Assemble Master Prompt Structure
+    const metaPrompt = `${roleSection}
 
 [DOMAIN CONTEXT & ENVIRONMENT]
 ${refinedContext}${clarificationSection}${multimodalContext}
@@ -175,6 +184,7 @@ ${securitySection}`;
     return {
       metaPrompt: metaPrompt.trim(),
       role,
+      candidates,
       polishedObjective,
       refinedContext,
       breakdown,
@@ -184,17 +194,12 @@ ${securitySection}`;
     };
   },
 
-  /**
-   * Auto-Refines raw context into structured domain parameters
-   */
   refineContext(rawContext, taskText) {
     if (!rawContext || rawContext.trim().length === 0) {
       return 'Operate within standard production software & business environment baselines. Assume modern tech stack guidelines.';
     }
 
     let cleanContext = rawContext.trim();
-
-    // Transform informal shorthand into structured environment baseline
     cleanContext = cleanContext.replace(/we use /gi, 'Environment Stack: ');
     cleanContext = cleanContext.replace(/running on /gi, 'Infrastructure: ');
     cleanContext = cleanContext.replace(/with /gi, 'Constraints: ');
@@ -202,9 +207,6 @@ ${securitySection}`;
     return `Target Environment Baseline:\n- ${cleanContext.split('\n').join('\n- ')}`;
   },
 
-  /**
-   * Polishes raw task into high-impact executive objective statement
-   */
   polishObjective(taskText) {
     if (!taskText || taskText.trim().length === 0) {
       return 'Deliver a high-efficacy, production-grade technical solution meeting all acceptance criteria.';
@@ -217,7 +219,6 @@ ${securitySection}`;
       polished = `Synthesize and execute a complete solution to ${polished.toLowerCase()}`;
     }
 
-    // Append edge case and validation requirements
     if (!/edge case|error|exception|test|validation/i.test(polished)) {
       polished += ' Ensure explicit handling for edge cases, error states, and execution validation.';
     }
@@ -225,9 +226,6 @@ ${securitySection}`;
     return polished;
   },
 
-  /**
-   * Generates dynamic clarifying questions for the prompt
-   */
   generateClarifyingQuestions(taskText) {
     if (!taskText || taskText.trim().length === 0) {
       return [
